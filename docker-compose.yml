@@ -1,0 +1,25 @@
+# Local development database. Start with:  docker compose up -d
+# If port 5433 is already used on your machine, change the left side (e.g. "5433:5432")
+# and update DATABASE_URL / DATABASE_URL_UNPOOLED in api/.env.
+services:
+  db:
+    image: postgres:17
+    container_name: campusone-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: campusone
+      POSTGRES_PASSWORD: campusone
+      POSTGRES_DB: campusone
+    ports:
+      - "5433:5432"
+    volumes:
+      - campusone_pgdata:/var/lib/postgresql/data
+      - ./docker/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U campusone -d campusone"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  campusone_pgdata:
