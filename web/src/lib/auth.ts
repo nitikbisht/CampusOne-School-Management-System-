@@ -11,7 +11,7 @@ export interface User {
 }
 
 export interface AuthResponse {
-  user: User;
+  data:{user: User;}
 }
 
 export interface AuthState {
@@ -34,7 +34,7 @@ export async function logout(): Promise<void> {
 export async function getCurrentUser(): Promise<User | null> {
   try {
     const response = await apiFetch<AuthResponse>("/auth/me");
-    return response.user;
+    return response.data.user;
   } catch (err) {
     if (err instanceof ApiError && err.status === 401) return null;
     throw err;

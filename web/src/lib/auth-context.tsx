@@ -38,8 +38,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const handleLogin = async (email: string, password: string) => {
     setState((prev) => ({ ...prev, isLoading: true }));
-    const { user } = await login(email, password);
-    setState({ user, isLoading: false, isAuthenticated: true });
+    const { data } = await login(email, password);
+    setState({ user : data.user, isLoading: false, isAuthenticated: true });
   };
 
   const handleLogout = async () => {

@@ -4,18 +4,13 @@ import { useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import Link from "next/link";
-
-const navigation = [
-  { name: "Dashboard", href: "/dashboard", icon: "📊" },
-  { name: "Academic Years", href: "/academic-years", icon: "📅" },
-  { name: "Users", href: "/users", icon: "👥" },
-  { name: "Roles", href: "/roles", icon: "🔐" },
-];
+import { getFilteredNavigation, getPrimaryRole } from "@/lib/navigation";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const { user, isLoading, isAuthenticated, logout } = useAuth();
+  const navigationGroups = getFilteredNavigation(user);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -41,6 +36,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     router.refresh();
   };
 
+  // Find current page name for header
+  const currentPageName = navigationGroups
+    .flatMap((g) => g.items)
+    .find((item) => item.href === pathname)?.name ?? "Dashboard";
+
   return (
     <div className="min-h-screen bg-gray-50 flex">
       {/* Sidebar */}
@@ -50,22 +50,33 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             <span className="text-xl font-bold text-gray-900">CampusOne</span>
           </div>
           <nav className="flex-1 px-4 py-4 space-y-1 overflow-y-auto">
-            {navigation.map((item) => (
-              <Link
-                key={item.name}
-                href={item.href}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                  pathname === item.href
-                    ? "bg-blue-50 text-blue-700"
-                    : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
-                }`}
-              >
-                <span className="text-lg">{item.icon}</span>
-                {item.name}
-              </Link>
+            {navigationGroups.map((group) => (
+              <div key={group.label} className="space-y-1">
+                <p className="px-3 py-1 text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                  {group.label}
+                </p>
+                {group.items.map((item) => (
+                  <Link
+                    key={item.name}
+                    href={item.href}
+                    className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                      pathname === item.href
+                        ? "bg-blue-50 text-blue-700"
+                        : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+                    }`}
+                  >
+                    <span className="text-lg">{item.icon}</span>
+                    {item.name}
+                  </Link>
+                ))}
+              </div>
             ))}
           </nav>
           <div className="p-4 border-t border-gray-200">
+            <div className="mb-3 px-3 py-2 bg-gray-50 rounded-lg">
+              <p className="text-xs text-gray-500">Signed in as</p>
+              <p className="text-sm font-medium text-gray-900 capitalize">{getPrimaryRole(user).toLowerCase()}</p>
+            </div>
             <button
               onClick={handleLogout}
               className="w-full flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-gray-600 hover:bg-gray-100 hover:text-gray-900 rounded-lg transition-colors"
@@ -83,9 +94,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         <header className="sticky top-0 z-40 bg-white border-b border-gray-200">
           <div className="flex items-center justify-between h-16 px-6">
             <div className="flex items-center gap-4">
-              <h2 className="text-lg font-semibold text-gray-900">
-                {navigation.find((n) => n.href === pathname)?.name ?? "Dashboard"}
-              </h2>
+              <h2 className="text-lg font-semibold text-gray-900">{currentPageName}</h2>
             </div>
             <div className="flex items-center gap-4">
               <div className="hidden sm:block text-sm text-gray-600">
