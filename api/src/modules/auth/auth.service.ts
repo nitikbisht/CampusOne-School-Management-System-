@@ -2,6 +2,7 @@ import { AppError } from "../../lib/errors.js";
 import jwt from "jsonwebtoken";
 import type { AuthContext } from "../../types/auth.js";
 import { authRepository } from "./auth.repository.js";
+import type { User } from "@prisma/client";
 
 const ACCESS_TOKEN_EXPIRY = "15m";
 const REFRESH_TOKEN_EXPIRY_DAYS = 7;
@@ -15,7 +16,23 @@ function getEnv(name: string): string {
 const JWT_SECRET = getEnv("JWT_SECRET");
 const JWT_REFRESH_SECRET = getEnv("JWT_REFRESH_SECRET");
 
-function buildAuthContext(user: typeof authRepository extends { findUserByEmail: (s: string, e: string) => Promise<infer U> } ? U : never): AuthContext {
+interface UserWithRoles {
+  id: string;
+  schoolId: string;
+  email: string;
+  passwordHash: string;
+  firstName: string;
+  lastName: string;
+  isActive: boolean;
+  roles: Array<{
+    role: {
+      name: string;
+      permissions: Array<{ permission: { key: string } }>;
+    };
+  }>;
+}
+
+function buildAuthContext(user: UserWithRoles): AuthContext {
   const permissions = new Set<string>();
   const roles = new Set<string>();
 

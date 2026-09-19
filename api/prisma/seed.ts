@@ -42,10 +42,29 @@ async function main() {
     });
     roleIdByName.set(name, role.id);
 
+    // Sync permissions: remove old ones not in DEFAULT_ROLE_PERMISSIONS, add new ones
+    const existingPermissions = await prisma.rolePermission.findMany({
+      where: { roleId: role.id },
+      select: { permissionId: true },
+    });
+    const existingPermissionIds = new Set(existingPermissions.map((rp) => rp.permissionId));
+    const desiredPermissionIds = keys.map((key) => permissionIdByKey.get(key) as string).filter(Boolean);
+
+    // Remove permissions that are no longer in the default set
+    const toRemove = existingPermissions.filter(
+      (rp) => !desiredPermissionIds.includes(rp.permissionId),
+    );
+    if (toRemove.length > 0) {
+      await prisma.rolePermission.deleteMany({
+        where: { roleId: role.id, permissionId: { in: toRemove.map((rp) => rp.permissionId) } },
+      });
+    }
+
+    // Add new permissions
     await prisma.rolePermission.createMany({
-      data: keys.map((key) => ({
+      data: desiredPermissionIds.map((permissionId) => ({
         roleId: role.id,
-        permissionId: permissionIdByKey.get(key) as string,
+        permissionId,
       })),
       skipDuplicates: true,
     });

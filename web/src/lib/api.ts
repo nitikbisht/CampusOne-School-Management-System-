@@ -18,7 +18,11 @@ export async function apiFetch<T>(
   init: RequestInit & { schoolId?: string } = {}
 ): Promise<T> {
   const { schoolId = SCHOOL_ID, ...restInit } = init;
-  const res = await fetch(`${API_URL}/api/v1${path}`, {
+  // Use relative URL in browser so Next.js rewrites proxy to backend
+  // This allows cookies to work cross-origin (frontend on :3000, backend on :4000)
+  const isBrowser = typeof window !== "undefined";
+  const baseUrl = isBrowser ? "" : API_URL;
+  const res = await fetch(`${baseUrl}/api/v1${path}`, {
     ...restInit,
     headers: {
       "Content-Type": "application/json",

@@ -2,17 +2,15 @@ import { apiFetch, type ApiError } from "./api";
 
 export interface User {
   id: string;
-  email: string;
-  firstName: string;
-  lastName: string;
+  email?: string;
+  firstName?: string;
+  lastName?: string;
   roles: string[];
   permissions: string[];
   schoolId: string;
 }
 
-export interface LoginResponse {
-  accessToken: string;
-  refreshToken: string;
+export interface AuthResponse {
   user: User;
 }
 
@@ -22,8 +20,8 @@ export interface AuthState {
   isAuthenticated: boolean;
 }
 
-export async function login(email: string, password: string): Promise<LoginResponse> {
-  return apiFetch<LoginResponse>("/auth/login", {
+export async function login(email: string, password: string): Promise<AuthResponse> {
+  return apiFetch<AuthResponse>("/auth/login", {
     method: "POST",
     body: JSON.stringify({ email, password }),
   });
@@ -33,13 +31,10 @@ export async function logout(): Promise<void> {
   await apiFetch("/auth/logout", { method: "POST" });
 }
 
-export async function refreshToken(): Promise<{ accessToken: string; refreshToken: string }> {
-  return apiFetch("/auth/refresh", { method: "POST" });
-}
-
 export async function getCurrentUser(): Promise<User | null> {
   try {
-    return await apiFetch<User>("/auth/me");
+    const response = await apiFetch<AuthResponse>("/auth/me");
+    return response.user;
   } catch (err) {
     if (err instanceof ApiError && err.status === 401) return null;
     throw err;
