@@ -4,6 +4,13 @@
  * through requirePermission(). Add new keys here when you add a module.
  */
 export const PERMISSIONS = {
+  // Auth
+  AUTH_LOGIN: "auth:login",
+  AUTH_LOGOUT: "auth:logout",
+  AUTH_REFRESH: "auth:refresh",
+  AUTH_PASSWORD_RESET: "auth:password_reset",
+
+  // Academic
   ACADEMIC_YEAR_VIEW: "academic_year:view",
   ACADEMIC_YEAR_CREATE: "academic_year:create",
   ACADEMIC_YEAR_MANAGE: "academic_year:manage",
@@ -13,9 +20,21 @@ export const PERMISSIONS = {
   SECTION_MANAGE: "section:manage",
   SUBJECT_VIEW: "subject:view",
   SUBJECT_MANAGE: "subject:manage",
+
+  // Users & RBAC
   USER_VIEW: "user:view",
+  USER_CREATE: "user:create",
+  USER_UPDATE: "user:update",
+  USER_DELETE: "user:delete",
   USER_MANAGE: "user:manage",
+  ROLE_VIEW: "role:view",
+  ROLE_CREATE: "role:create",
+  ROLE_UPDATE: "role:update",
+  ROLE_DELETE: "role:delete",
   ROLE_MANAGE: "role:manage",
+  PERMISSION_LIST: "permission:list",
+
+  // Auditing
   AUDIT_VIEW: "audit:view",
 } as const;
 
@@ -35,6 +54,13 @@ const VIEW_ONLY: PermissionKey[] = [
   PERMISSIONS.SUBJECT_VIEW,
 ];
 
+const AUTH_BASIC: PermissionKey[] = [
+  PERMISSIONS.AUTH_LOGIN,
+  PERMISSIONS.AUTH_LOGOUT,
+  PERMISSIONS.AUTH_REFRESH,
+  PERMISSIONS.AUTH_PASSWORD_RESET,
+];
+
 /** Starting point only: the school can change these later through role management. */
 export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
   Developer: ALL_PERMISSIONS,
@@ -43,7 +69,7 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
   Admin: ALL_PERMISSIONS.filter(
     (p) => p !== PERMISSIONS.ROLE_MANAGE && p !== PERMISSIONS.AUDIT_VIEW,
   ),
-  Teacher: VIEW_ONLY,
-  Student: [],
-  Parent: [],
+  Teacher: [...VIEW_ONLY, ...AUTH_BASIC],
+  Student: AUTH_BASIC,
+  Parent: AUTH_BASIC,
 };

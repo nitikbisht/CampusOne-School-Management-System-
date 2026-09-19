@@ -1,4 +1,5 @@
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
+const SCHOOL_ID = process.env.NEXT_PUBLIC_SCHOOL_ID ?? "demo";
 
 export class ApiError extends Error {
   constructor(
@@ -12,10 +13,18 @@ export class ApiError extends Error {
 }
 
 /** Typed fetch wrapper for the CampusOne API. All API calls in the web app go through this. */
-export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
+export async function apiFetch<T>(
+  path: string,
+  init: RequestInit & { schoolId?: string } = {}
+): Promise<T> {
+  const { schoolId = SCHOOL_ID, ...restInit } = init;
   const res = await fetch(`${API_URL}/api/v1${path}`, {
-    ...init,
-    headers: { "Content-Type": "application/json", ...init.headers },
+    ...restInit,
+    headers: {
+      "Content-Type": "application/json",
+      "x-school-id": schoolId,
+      ...restInit.headers,
+    },
     credentials: "include",
     cache: "no-store",
   });

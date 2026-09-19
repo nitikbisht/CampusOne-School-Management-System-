@@ -1,34 +1,23 @@
-import { apiFetch } from "@/lib/api";
+"use client";
 
-export const dynamic = "force-dynamic";
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/lib/auth-context";
 
-type Ready = { status: string; database: string };
+export default function Home() {
+  const router = useRouter();
+  const { isLoading, isAuthenticated } = useAuth();
 
-async function getApiStatus(): Promise<Ready | null> {
-  try {
-    return await apiFetch<Ready>("/health/ready");
-  } catch {
-    return null;
-  }
-}
-
-export default async function Home() {
-  const api = await getApiStatus();
-  const healthy = api?.status === "ok";
+  useEffect(() => {
+    if (!isLoading) {
+      router.push(isAuthenticated ? "/dashboard" : "/login");
+    }
+  }, [isLoading, isAuthenticated, router]);
 
   return (
     <main className="mx-auto flex min-h-screen max-w-xl flex-col justify-center gap-6 p-8">
-      <h1 className="text-3xl font-semibold">CampusOne</h1>
-      <p className="text-neutral-600">School management platform: setup check.</p>
-
-      <div className="rounded-lg border p-4">
-        <p className="font-medium">API and database connection</p>
-        <p className={healthy ? "text-green-600" : "text-red-600"}>
-          {healthy
-            ? `Connected (database: ${api?.database})`
-            : "Cannot reach the API. Is it running on the URL in NEXT_PUBLIC_API_URL?"}
-        </p>
-      </div>
+      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+      <p className="text-center text-gray-500">Loading...</p>
     </main>
   );
 }
