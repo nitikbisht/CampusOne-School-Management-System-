@@ -47,7 +47,7 @@ export default function AcademicYearsPage() {
       const res = await apiFetch<PaginatedResponse<AcademicYear>>(
         `/academic-years?page=${pagination.page}&limit=${pagination.limit}`
       );
-      setYears(res.data.items);
+      setYears(res.data);
       setPagination((prev) => ({ ...prev, total: res.data.total, totalPages: res.data.totalPages }));
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Failed to fetch academic years");

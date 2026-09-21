@@ -65,7 +65,7 @@ export default function StudentsPage() {
       const res = await apiFetch<PaginatedResponse<Student>>(
         `/students?page=${pagination.page}&limit=${pagination.limit}`
       );
-      setStudents(res.data.items);
+      setStudents(res.data);
       setPagination((prev) => ({ ...prev, total: res.data.total, totalPages: res.data.totalPages }));
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Failed to fetch students");

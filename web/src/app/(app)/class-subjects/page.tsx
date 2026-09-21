@@ -56,7 +56,7 @@ export default function ClassSubjectsPage() {
       const res = await apiFetch<PaginatedResponse<ClassSubject>>(
         `/class-subjects?page=${pagination.page}&limit=${pagination.limit}`
       );
-      setClassSubjects(res.data.items);
+      setClassSubjects(res.data);
       setPagination((prev) => ({ ...prev, total: res.data.total, totalPages: res.data.totalPages }));
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Failed to fetch class subjects");
@@ -68,7 +68,7 @@ export default function ClassSubjectsPage() {
   const fetchClasses = useCallback(async () => {
     try {
       const res = await apiFetch<PaginatedResponse<{id: string, name: string, displayName: string}>>("/classes?limit=100");
-      setClasses(res.data.items);
+      setClasses(res.data);
     } catch (err) {
       console.error("Failed to fetch classes", err);
     }
@@ -77,7 +77,7 @@ export default function ClassSubjectsPage() {
   const fetchSubjects = useCallback(async () => {
     try {
       const res = await apiFetch<PaginatedResponse<{id: string, name: string, code: string}>>("/subjects?limit=100");
-      setSubjects(res.data.items);
+      setSubjects(res.data);
     } catch (err) {
       console.error("Failed to fetch subjects", err);
     }
@@ -86,7 +86,7 @@ export default function ClassSubjectsPage() {
   const fetchTeachers = useCallback(async () => {
     try {
       const res = await apiFetch<PaginatedResponse<{id: string, firstName: string, lastName: string, email: string}>>("/users?role=teacher&limit=100");
-      setTeachers(res.data.items);
+      setTeachers(res.data);
     } catch (err) {
       console.error("Failed to fetch teachers", err);
     }
@@ -95,7 +95,7 @@ export default function ClassSubjectsPage() {
   const fetchAcademicYears = useCallback(async () => {
     try {
       const res = await apiFetch<PaginatedResponse<{id: string, name: string}>>("/academic-years?limit=100");
-      setAcademicYears(res.data.items);
+      setAcademicYears(res.data);
     } catch (err) {
       console.error("Failed to fetch academic years", err);
     }

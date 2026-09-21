@@ -48,7 +48,7 @@ export default function ClassesPage() {
       const res = await apiFetch<PaginatedResponse<Class>>(
         `/classes?page=${pagination.page}&limit=${pagination.limit}`
       );
-      setClasses(res.data.items);
+      setClasses(res.data);
       setPagination((prev) => ({ ...prev, total: res.data.total, totalPages: res.data.totalPages }));
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Failed to fetch classes");
@@ -60,7 +60,7 @@ export default function ClassesPage() {
   const fetchAcademicYears = useCallback(async () => {
     try {
       const res = await apiFetch<PaginatedResponse<{id: string, name: string}>>("/academic-years?limit=100");
-      setAcademicYears(res.data.items);
+      setAcademicYears(res.data);
     } catch (err) {
       console.error("Failed to fetch academic years", err);
     }

@@ -1,4 +1,4 @@
-import { apiFetch, type ApiError } from "./api";
+import { apiFetch, ApiError } from "./api";
 
 export interface User {
   id: string;
@@ -21,19 +21,23 @@ export interface AuthState {
 }
 
 export async function login(email: string, password: string): Promise<AuthResponse> {
+  const SCHOOL_ID = process.env.NEXT_PUBLIC_SCHOOL_ID ?? "demo";
   return apiFetch<AuthResponse>("/auth/login", {
     method: "POST",
     body: JSON.stringify({ email, password }),
+    schoolId: SCHOOL_ID,
   });
 }
 
 export async function logout(): Promise<void> {
-  await apiFetch("/auth/logout", { method: "POST" });
+  const SCHOOL_ID = process.env.NEXT_PUBLIC_SCHOOL_ID ?? "demo";
+  await apiFetch("/auth/logout", { method: "POST", schoolId: SCHOOL_ID });
 }
 
 export async function getCurrentUser(): Promise<User | null> {
   try {
-    const response = await apiFetch<AuthResponse>("/auth/me");
+    const SCHOOL_ID = process.env.NEXT_PUBLIC_SCHOOL_ID ?? "demo";
+    const response = await apiFetch<AuthResponse>("/auth/me", { schoolId: SCHOOL_ID });
     return response.data.user;
   } catch (err) {
     if (err instanceof ApiError && err.status === 401) return null;

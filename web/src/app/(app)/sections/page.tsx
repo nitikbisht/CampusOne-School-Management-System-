@@ -48,7 +48,7 @@ export default function SectionsPage() {
       const res = await apiFetch<PaginatedResponse<Section>>(
         `/sections?page=${pagination.page}&limit=${pagination.limit}`
       );
-      setSections(res.data.items);
+      setSections(res.data);
       setPagination((prev) => ({ ...prev, total: res.data.total, totalPages: res.data.totalPages }));
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Failed to fetch sections");
@@ -60,7 +60,7 @@ export default function SectionsPage() {
   const fetchClasses = async () => {
     try {
       const res = await apiFetch<PaginatedResponse<{id: string, name: string, displayName: string}>>("/classes?limit=100");
-      setClasses(res.data.items);
+      setClasses(res.data);
     } catch (err) {
       console.error("Failed to fetch classes", err);
     }
@@ -69,7 +69,7 @@ export default function SectionsPage() {
   const fetchAcademicYears = async () => {
     try {
       const res = await apiFetch<PaginatedResponse<{id: string, name: string}>>("/academic-years?limit=100");
-      setAcademicYears(res.data.items);
+      setAcademicYears(res.data);
     } catch (err) {
       console.error("Failed to fetch academic years", err);
     }

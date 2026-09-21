@@ -52,7 +52,7 @@ export default function SubjectsPage() {
       const res = await apiFetch<PaginatedResponse<Subject>>(
         `/subjects?page=${pagination.page}&limit=${pagination.limit}`
       );
-      setSubjects(res.data.items);
+      setSubjects(res.data);
       setPagination((prev) => ({ ...prev, total: res.data.total, totalPages: res.data.totalPages }));
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Failed to fetch subjects");
@@ -64,7 +64,7 @@ export default function SubjectsPage() {
   const fetchSubjectTypes = async () => {
     try {
       const res = await apiFetch<PaginatedResponse<{id: string, name: string}>>("/subject-types?limit=100");
-      setSubjectTypes(res.data.items);
+      setSubjectTypes(res.data);
     } catch (err) {
       console.error("Failed to fetch subject types", err);
     }
@@ -73,7 +73,7 @@ export default function SubjectsPage() {
   const fetchAcademicYears = async () => {
     try {
       const res = await apiFetch<PaginatedResponse<{id: string, name: string}>>("/academic-years?limit=100");
-      setAcademicYears(res.data.items);
+      setAcademicYears(res.data);
     } catch (err) {
       console.error("Failed to fetch academic years", err);
     }

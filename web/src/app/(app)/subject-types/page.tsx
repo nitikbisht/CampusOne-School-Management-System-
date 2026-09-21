@@ -37,7 +37,7 @@ export default function SubjectTypesPage() {
       const res = await apiFetch<PaginatedResponse<SubjectType>>(
         `/subject-types?page=${pagination.page}&limit=${pagination.limit}`
       );
-      setSubjectTypes(res.data.items);
+      setSubjectTypes(res.data);
       setPagination((prev) => ({ ...prev, total: res.data.total, totalPages: res.data.totalPages }));
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Failed to fetch subject types");
