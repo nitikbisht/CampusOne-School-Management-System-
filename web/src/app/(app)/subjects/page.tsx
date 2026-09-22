@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/lib/auth-context";
-import { apiFetch, ApiError } from "@/lib/api";
+import { apiFetch, ApiError, extractItems, extractPagination } from "@/lib/api";
 
 interface Subject {
   id: string;
@@ -15,16 +15,6 @@ interface Subject {
   academicYear?: { name: string };
   createdAt: string;
   updatedAt: string;
-}
-
-interface PaginatedResponse<T> {
-  data: {
-    items: T[];
-    total: number;
-    page: number;
-    limit: number;
-    totalPages: number;
-  };
 }
 
 export default function SubjectsPage() {
@@ -46,44 +36,45 @@ export default function SubjectsPage() {
   const [subjectTypes, setSubjectTypes] = useState<{id: string, name: string}[]>([]);
   const [academicYears, setAcademicYears] = useState<{id: string, name: string}[]>([]);
 
-  const fetchSubjects = async () => {
+  const fetchSubjects = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await apiFetch<PaginatedResponse<Subject>>(
+      const res = await apiFetch(
         `/subjects?page=${pagination.page}&limit=${pagination.limit}`
       );
-      setSubjects(res.data);
-      setPagination((prev) => ({ ...prev, total: res.data.total, totalPages: res.data.totalPages }));
+      setSubjects(extractItems<Subject>(res));
+      const pg = extractPagination(res);
+      if (pg) setPagination((prev) => ({ ...prev, total: pg.total, totalPages: pg.totalPages }));
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Failed to fetch subjects");
     } finally {
       setLoading(false);
     }
-  };
+  }, [pagination.page, pagination.limit]);
 
-  const fetchSubjectTypes = async () => {
+  const fetchSubjectTypes = useCallback(async () => {
     try {
-      const res = await apiFetch<PaginatedResponse<{id: string, name: string}>>("/subject-types?limit=100");
-      setSubjectTypes(res.data);
+      const res = await apiFetch("/subject-types?limit=100");
+      setSubjectTypes(extractItems<{id: string, name: string}>(res));
     } catch (err) {
       console.error("Failed to fetch subject types", err);
     }
-  };
+  }, []);
 
-  const fetchAcademicYears = async () => {
+  const fetchAcademicYears = useCallback(async () => {
     try {
-      const res = await apiFetch<PaginatedResponse<{id: string, name: string}>>("/academic-years?limit=100");
-      setAcademicYears(res.data);
+      const res = await apiFetch("/academic-years?limit=100");
+      setAcademicYears(extractItems<{id: string, name: string}>(res));
     } catch (err) {
       console.error("Failed to fetch academic years", err);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchSubjects();
     fetchSubjectTypes();
     fetchAcademicYears();
-  }, [pagination.page]);
+  }, [fetchSubjects, fetchSubjectTypes, fetchAcademicYears]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

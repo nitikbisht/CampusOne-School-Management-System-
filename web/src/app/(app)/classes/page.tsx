@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/lib/auth-context";
-import { apiFetch, ApiError } from "@/lib/api";
+import { apiFetch, ApiError, extractItems, extractPagination } from "@/lib/api";
 
 interface Class {
   id: string;
@@ -13,16 +13,6 @@ interface Class {
   academicYear?: { name: string };
   createdAt: string;
   updatedAt: string;
-}
-
-interface PaginatedResponse<T> {
-  data: {
-    items: T[];
-    total: number;
-    page: number;
-    limit: number;
-    totalPages: number;
-  };
 }
 
 export default function ClassesPage() {
@@ -45,11 +35,12 @@ export default function ClassesPage() {
   const fetchClasses = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await apiFetch<PaginatedResponse<Class>>(
+      const res = await apiFetch(
         `/classes?page=${pagination.page}&limit=${pagination.limit}`
       );
-      setClasses(res.data);
-      setPagination((prev) => ({ ...prev, total: res.data.total, totalPages: res.data.totalPages }));
+      setClasses(extractItems<Class>(res));
+      const pg = extractPagination(res);
+      if (pg) setPagination((prev) => ({ ...prev, total: pg.total, totalPages: pg.totalPages }));
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Failed to fetch classes");
     } finally {
@@ -59,8 +50,8 @@ export default function ClassesPage() {
 
   const fetchAcademicYears = useCallback(async () => {
     try {
-      const res = await apiFetch<PaginatedResponse<{id: string, name: string}>>("/academic-years?limit=100");
-      setAcademicYears(res.data);
+      const res = await apiFetch("/academic-years?limit=100");
+      setAcademicYears(extractItems<{id: string, name: string}>(res));
     } catch (err) {
       console.error("Failed to fetch academic years", err);
     }

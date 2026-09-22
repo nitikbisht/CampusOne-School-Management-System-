@@ -57,6 +57,13 @@ export const PERMISSIONS = {
   STUDENT_ENROLLMENT_DELETE: "student_enrollment:delete",
   STUDENT_ENROLLMENT_MANAGE: "student_enrollment:manage",
 
+  // Fees
+  FEE_VIEW: "fee:view",
+  FEE_CREATE: "fee:create",
+  FEE_UPDATE: "fee:update",
+  FEE_DELETE: "fee:delete",
+  FEE_MANAGE: "fee:manage",
+
   // Users & RBAC
   USER_VIEW: "user:view",
   USER_CREATE: "user:create",

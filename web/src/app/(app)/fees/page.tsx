@@ -36,11 +36,22 @@ export default function FeesPage() {
   const [pagination, setPagination] = useState({ page: 1, limit: 20, total: 0, totalPages: 0 });
   const [showModal, setShowModal] = useState(false);
   const [editingFee, setEditingFee] = useState<Fee | null>(null);
-  const [formData, setFormData] = useState({
+  interface FeeFormData {
+  name: string;
+  description?: string;
+  amount: number;
+  frequency: "ONE_TIME" | "MONTHLY" | "QUARTERLY" | "SEMESTER" | "ANNUAL";
+  academicYearId: string;
+  classId?: string;
+  dueDate?: string;
+  isActive: boolean;
+}
+
+  const [formData, setFormData] = useState<FeeFormData>({
     name: "",
     description: "",
     amount: 0,
-    frequency: "ONE_TIME" as "ONE_TIME" | "MONTHLY" | "QUARTERLY" | "SEMESTER" | "ANNUAL",
+    frequency: "ONE_TIME",
     academicYearId: "",
     classId: "",
     dueDate: "",

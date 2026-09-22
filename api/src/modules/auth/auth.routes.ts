@@ -4,6 +4,7 @@ import { authenticate, requirePermission } from "../../middleware/auth.js";
 import { validate } from "../../middleware/validate.js";
 import { authController } from "./auth.controller.js";
 import { loginSchema, refreshSchema, forgotPasswordSchema, resetPasswordSchema, changePasswordSchema } from "./auth.schemas.js";
+import { prisma } from "../../lib/prisma.js";
 
 export const authRoutes = Router();
 
@@ -72,6 +73,9 @@ authRoutes.get(
   "/permissions",
   requirePermission(PERMISSIONS.PERMISSION_LIST),
   async (_req, res) => {
-    res.json({ data: [], message: "Not implemented yet" });
+    const permissions = await prisma.permission.findMany({
+      orderBy: [{ module: "asc" }, { action: "asc" }],
+    });
+    res.json({ data: permissions.map((p) => ({ key: p.key, description: p.description })) });
   },
 );

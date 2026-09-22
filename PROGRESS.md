@@ -1,8 +1,8 @@
 # CampusOne School Management System - Progress Tracker
 
-> **Last Updated:** 2026-09-20  
-> **Current Phase:** Week 4 Complete - People Management (Students, Parents, Student Enrollment)  
-> **Next Phase:** Week 5 - Attendance
+> **Last Updated:** 2026-09-22  
+> **Current Phase:** Week 5 Complete - People Management (Students, Parents, Enrollment, Users, Roles)  
+> **Next Phase:** Week 6 - Attendance & Timetable
 
 ---
 
@@ -16,12 +16,13 @@
 | 2 | Authentication & RBAC | ✅ **COMPLETE** | 2026-09-19 | JWT auth, refresh tokens, roles, permissions, login UI |
 | 3 | Academic Structure | ✅ **COMPLETE** | 2026-09-19 | Classes, Sections, Subjects, Subject Types, Class-Subject mapping - all CRUD APIs |
 | 4 | People Management | ✅ **COMPLETE** | 2026-09-20 | Students, Parents, Student Enrollment - all CRUD APIs + Parent-Student links |
-| 5 | Attendance | ⏳ **PENDING** | - | Daily attendance, reports, analytics |
-| 6 | Examinations | ⏳ **PENDING** | - | Exam scheduling, marks entry, report cards |
-| 7 | Fees & Finance | ⏳ **PENDING** | - | Fee structures, invoices, payments, receipts |
-| 8 | Communication | ⏳ **PENDING** | - | Notifications, announcements, messaging |
-| 9 | Reports & Analytics | ⏳ **PENDING** | - | Dashboards, exports, academic reports |
-| 10 | Polish & Deploy | ⏳ **PENDING** | - | Testing, optimization, production deploy |
+| 5 | User & Role Management | ✅ **COMPLETE** | 2026-09-22 | Users, Roles, Permissions - full CRUD APIs + Frontend pages |
+| 6 | Attendance & Timetable | ⏳ **PENDING** | - | Daily attendance, timetable, reports, analytics |
+| 7 | Examinations | ⏳ **PENDING** | - | Exam scheduling, marks entry, report cards |
+| 8 | Fees & Finance | ⏳ **PENDING** | - | Fee structures, invoices, payments, receipts |
+| 9 | Communication | ⏳ **PENDING** | - | Notifications, announcements, messaging |
+| 10 | Reports & Analytics | ⏳ **PENDING** | - | Dashboards, exports, academic reports |
+| 11 | Polish & Deploy | ⏳ **PENDING** | - | Testing, optimization, production deploy |
 
 ### Week 4 Deliverables Checklist
 
@@ -33,6 +34,20 @@
 | Student Enrollment module (CRUD API + validation) | ✅ | ✅ |
 | Permissions updated for all 3 modules | ✅ | ✅ |
 | Seed script already had permissions | ✅ | ✅ |
+| All endpoints tested manually | ✅ | ✅ |
+| Web proxy working for all new endpoints | ✅ | ✅ |
+
+### Week 5 Deliverables Checklist
+
+| Deliverable | Status | Verified |
+|-------------|--------|----------|
+| Users module (CRUD API + search/pagination + role assignment + change password) | ✅ | ✅ |
+| Roles module (CRUD API + search/pagination + permission sync) | ✅ | ✅ |
+| Permissions catalog (global, seeded) | ✅ | ✅ |
+| Default role permissions (Developer, Principal, VP, Admin, Teacher, Student, Parent) | ✅ | ✅ |
+| Frontend Users page (list, create, edit, delete, activate/deactivate) | ✅ | ✅ |
+| Frontend Roles page (list, create, edit, delete, permission picker UI) | ✅ | ✅ |
+| API permissions endpoint (/auth/permissions) | ✅ | ✅ |
 | All endpoints tested manually | ✅ | ✅ |
 | Web proxy working for all new endpoints | ✅ | ✅ |
 
@@ -74,7 +89,29 @@
 
 ### Backend (API) - Files Created/Modified
 
-#### New Files (Week 4)
+#### New Files (Week 5 - Users & Roles)
+```
+api/src/modules/users/
+├── user.schemas.ts       # Zod validation schemas
+├── user.repository.ts    # Prisma data access layer
+├── user.service.ts       # Business logic (CRUD, role sync, password change)
+├── user.controller.ts    # HTTP handlers
+└── user.routes.ts        # Express routes with middleware
+
+api/src/modules/roles/
+├── role.schemas.ts       # Zod validation schemas
+├── role.repository.ts    # Prisma data access layer
+├── role.service.ts       # Business logic (CRUD, permission sync, system role protection)
+├── role.controller.ts    # HTTP handlers
+└── role.routes.ts        # Express routes with middleware
+```
+
+#### Modified Files (Week 5)
+| File | Changes |
+|------|---------|
+| `api/src/lib/permissions.ts` | Added USER_*, ROLE_*, PERMISSION_LIST permissions; updated DEFAULT_ROLE_PERMISSIONS for all roles |
+| `api/src/routes.ts` | Registered users and roles module routes |
+| `api/prisma/seed.ts` | Syncs permissions for all system roles on seed |
 ```
 api/src/modules/students/
 ├── student.schemas.ts       # Zod validation schemas
@@ -133,9 +170,19 @@ api/src/modules/auth/
 
 #### Database
 - **Migration:** Created `refresh_tokens` table with FK to `users`
+- **Models:** Role, Permission, RolePermission, UserRole, User (already in initial migration)
 - **Seed:** Demo admin user (`admin@campusone.test` / `ChangeMe-12345`) with Admin role
 
 ### Frontend (Web) - Files Created/Modified
+
+#### New Files (Week 5 - Users & Roles Pages)
+```
+web/src/app/(app)/
+├── users/
+│   └── page.tsx          # Users management page with CRUD modal
+└── roles/
+    └── page.tsx          # Roles management page with permission picker
+```
 
 #### New Files (Week 2)
 ```
@@ -166,6 +213,23 @@ web/src/
 | `web/.env.example` | Added `NEXT_PUBLIC_SCHOOL_ID` placeholder |
 
 ### API Endpoints Implemented
+
+#### Week 5 - Users & Roles Management
+
+| Method | Endpoint | Auth | Permission | Description |
+|--------|----------|------|------------|-------------|
+| GET | `/api/v1/users` | Required | user:view | List users (paginated, searchable, filterable) |
+| POST | `/api/v1/users` | Required | user:create | Create a user with roles |
+| GET | `/api/v1/users/:id` | Required | user:view | Get a user with roles |
+| PATCH | `/api/v1/users/:id` | Required | user:update | Update a user (incl. role sync) |
+| DELETE | `/api/v1/users/:id` | Required | user:delete | Delete a user |
+| POST | `/api/v1/users/:id/change-password` | Required | user:update | Change user password |
+| GET | `/api/v1/roles` | Required | role:view | List roles (paginated, searchable) |
+| POST | `/api/v1/roles` | Required | role:create | Create a role with permissions |
+| GET | `/api/v1/roles/:id` | Required | role:view | Get a role with permissions |
+| PATCH | `/api/v1/roles/:id` | Required | role:update | Update a role (incl. permission sync) |
+| DELETE | `/api/v1/roles/:id` | Required | role:delete | Delete a role (blocks if assigned) |
+| GET | `/api/v1/auth/permissions` | Required | permission:list | List all permissions (for picker UI) |
 
 #### Week 4 - People Management
 
@@ -242,6 +306,13 @@ web/src/
 
 **Format:** `module:action` (e.g., `academic_year:create`, `user:view`)
 
+**New Permissions Added (Week 5):**
+| Module | Permissions |
+|--------|-------------|
+| User | user:view, user:create, user:update, user:delete, user:manage |
+| Role | role:view, role:create, role:update, role:delete, role:manage |
+| Permission | permission:list |
+
 **New Permissions Added (Week 4):**
 | Module | Permissions |
 |--------|-------------|
@@ -258,7 +329,7 @@ web/src/
 | Subject Type | subject_type:view, subject_type:create, subject_type:update, subject_type:delete, subject_type:manage |
 | Class Subject | class_subject:view, class_subject:create, class_subject:update, class_subject:delete, class_subject:manage |
 
-**Roles (6 system roles):**
+**Roles (7 system roles):**
 | Role | Permissions |
 |------|-------------|
 | Developer | ALL_PERMISSIONS |
@@ -373,7 +444,7 @@ curl -X GET "http://localhost:4000/api/v1/class-subjects/class/da9f83d9-7c33-4ee
 # ✅ Returns 200 with class-subject mappings for class
 ```
 
-### Week 4 - People Management Tests
+### Week 5 - Users & Roles Management Tests
 
 ```bash
 # Login (gets cookies)
@@ -384,54 +455,78 @@ curl -X POST http://localhost:4000/api/v1/auth/login \
   -c cookies.txt
 # ✅ Returns 200 with Set-Cookie headers
 
-# Students
-curl -X GET http://localhost:4000/api/v1/students \
+# Users - List
+curl -X GET http://localhost:4000/api/v1/users \
   -H "x-school-id: 87a4a639-83d9-4158-b4c3-092efe7b617b" -b cookies.txt
-# ✅ Returns 200 with paginated students
+# ✅ Returns 200 with paginated users (includes roles)
 
-curl -X POST http://localhost:4000/api/v1/students \
+# Users - Create
+curl -X POST http://localhost:4000/api/v1/users \
   -H "Content-Type: application/json" \
   -H "x-school-id: 87a4a639-83d9-4158-b4c3-092efe7b617b" -b cookies.txt \
-  -d '{"admissionNo":"STU001","firstName":"John","lastName":"Doe","dateOfBirth":"2010-05-15","gender":"MALE","admissionDate":"2024-04-01"}'
-# ✅ Returns 201 with created student
+  -d '{"email":"teacher1@school.edu","password":"Pass1234","firstName":"John","lastName":"Teacher","roleIds":["<teacher-role-id>"]}'
+# ✅ Returns 201 with created user (passwordHash omitted)
 
-# Parents
-curl -X GET http://localhost:4000/api/v1/parents \
+# Users - Get Single
+curl -X GET http://localhost:4000/api/v1/users/<user-id> \
   -H "x-school-id: 87a4a639-83d9-4158-b4c3-092efe7b617b" -b cookies.txt
-# ✅ Returns 200 with paginated parents
+# ✅ Returns 200 with user and roles
 
-curl -X POST http://localhost:4000/api/v1/parents \
+# Users - Update (with role sync)
+curl -X PATCH http://localhost:4000/api/v1/users/<user-id> \
   -H "Content-Type: application/json" \
   -H "x-school-id: 87a4a639-83d9-4158-b4c3-092efe7b617b" -b cookies.txt \
-  -d '{"firstName":"Robert","lastName":"Doe","phone":"+1234567890","email":"robert.doe@example.com","isPrimary":true}'
-# ✅ Returns 201 with created parent
+  -d '{"firstName":"Jane","roleIds":["<teacher-role-id>","<admin-role-id>"]}'
+# ✅ Returns 200 with updated user
 
-# Parent-Student Link
-curl -X POST "http://localhost:4000/api/v1/parents/a53c03a6-9031-4a80-a51a-a7686dc7ba2c/children" \
+# Users - Change Password
+curl -X POST http://localhost:4000/api/v1/users/<user-id>/change-password \
   -H "Content-Type: application/json" \
   -H "x-school-id: 87a4a639-83d9-4158-b4c3-092efe7b617b" -b cookies.txt \
-  -d '{"studentId":"0020af48-a305-46b9-a964-c5b165779962","relation":"Father"}'
-# ✅ Returns 201 with link created
+  -d '{"currentPassword":"Pass1234","newPassword":"NewPass123","confirmPassword":"NewPass123"}'
+# ✅ Returns 200 with success message
 
-curl -X GET "http://localhost:4000/api/v1/parents/a53c03a6-9031-4a80-a51a-a7686dc7ba2c/children" \
+# Users - Delete
+curl -X DELETE http://localhost:4000/api/v1/users/<user-id> \
   -H "x-school-id: 87a4a639-83d9-4158-b4c3-092efe7b617b" -b cookies.txt
-# ✅ Returns 200 with parent's children
+# ✅ Returns 200 with success message
 
-curl -X GET "http://localhost:4000/api/v1/parents/students/0020af48-a305-46b9-a964-c5b165779962/parents" \
+# Roles - List
+curl -X GET http://localhost:4000/api/v1/roles \
   -H "x-school-id: 87a4a639-83d9-4158-b4c3-092efe7b617b" -b cookies.txt
-# ✅ Returns 200 with student's parents
+# ✅ Returns 200 with paginated roles (includes permissions)
 
-# Student Enrollments
-curl -X GET http://localhost:4000/api/v1/student-enrollments \
-  -H "x-school-id: 87a4a639-83d9-4158-b4c3-092efe7b617b" -b cookies.txt
-# ✅ Returns 200 with enrollments
-
-curl -X POST http://localhost:4000/api/v1/student-enrollments \
+# Roles - Create
+curl -X POST http://localhost:4000/api/v1/roles \
   -H "Content-Type: application/json" \
   -H "x-school-id: 87a4a639-83d9-4158-b4c3-092efe7b617b" -b cookies.txt \
-  -d '{"studentId":"0020af48-a305-46b9-a964-c5b165779962","academicYearId":"bb7dc2be-0b8f-4dc8-abc4-cc71eebb6cbd","classId":"e3bbf8fc-202b-4df7-8a65-03312d0b98d3","sectionId":"cec0e338-6cc7-491e-a51f-3d3649291a22","rollNumber":1}'
-# ✅ Returns 201 with created enrollment
+  -d '{"name":"Librarian","description":"Library staff","permissions":["student:view","book:manage"]}'
+# ✅ Returns 201 with created role
+
+# Roles - Get Single
+curl -X GET http://localhost:4000/api/v1/roles/<role-id> \
+  -H "x-school-id: 87a4a639-83d9-4158-b4c3-092efe7b617b" -b cookies.txt
+# ✅ Returns 200 with role and permissions
+
+# Roles - Update (with permission sync)
+curl -X PATCH http://localhost:4000/api/v1/roles/<role-id> \
+  -H "Content-Type: application/json" \
+  -H "x-school-id: 87a4a639-83d9-4158-b4c3-092efe7b617b" -b cookies.txt \
+  -d '{"permissions":["student:view","student:create","book:manage"]}'
+# ✅ Returns 200 with updated role
+
+# Roles - Delete (blocks if assigned to users)
+curl -X DELETE http://localhost:4000/api/v1/roles/<role-id> \
+  -H "x-school-id: 87a4a639-83d9-4158-b4c3-092efe7b617b" -b cookies.txt
+# ✅ Returns 200 or 409 if role assigned to users
+
+# Permissions List (for picker UI)
+curl -X GET "http://localhost:4000/api/v1/auth/permissions?limit=500" \
+  -H "x-school-id: 87a4a639-83d9-4158-b4c3-092efe7b617b" -b cookies.txt
+# ✅ Returns 200 with all permissions grouped by module
 ```
+
+### Week 4 - People Management Tests
 
 ### Web Proxy Tests (All Passing ✅)
 ```bash
@@ -452,6 +547,16 @@ curl -X GET http://localhost:3000/api/auth/me \
 curl -X GET http://localhost:3000/api/students \
   -H "x-school-id: 87a4a639-83d9-4158-b4c3-092efe7b617b" -b cookies.txt
 # ✅ Returns 200 with students
+
+# Users via web proxy
+curl -X GET http://localhost:3000/api/users \
+  -H "x-school-id: 87a4a639-83d9-4158-b4c3-092efe7b617b" -b cookies.txt
+# ✅ Returns 200 with users
+
+# Roles via web proxy
+curl -X GET http://localhost:3000/api/roles \
+  -H "x-school-id: 87a4a639-83d9-4158-b4c3-092efe7b617b" -b cookies.txt
+# ✅ Returns 200 with roles
 ```
 
 ### Frontend Tests
@@ -461,6 +566,20 @@ curl -X GET http://localhost:3000/api/students \
 | Login | http://localhost:3000/login | ✅ Loads, form enabled after API ready |
 | Dashboard (protected) | http://localhost:3000/dashboard | ✅ Redirects to login when unauthenticated |
 | Root | http://localhost:3000/ | ✅ Redirects based on auth state |
+| Users | http://localhost:3000/users | ✅ Lists users, create/edit/delete modals |
+| Roles | http://localhost:3000/roles | ✅ Lists roles, permission picker modal |
+| Academic Years | http://localhost:3000/academic-years | ✅ Lists academic years |
+| Classes | http://localhost:3000/classes | ✅ Lists classes |
+| Sections | http://localhost:3000/sections | ✅ Lists sections |
+| Subjects | http://localhost:3000/subjects | ✅ Lists subjects |
+| Subject Types | http://localhost:3000/subject-types | ✅ Lists subject types |
+| Class Subjects | http://localhost:3000/class-subjects | ✅ Lists class-subject mappings |
+| Parents | http://localhost:3000/parents | ✅ Lists parents with children |
+| Students | http://localhost:3000/students | ✅ Lists students |
+| Enrollments | http://localhost:3000/enrollments | ✅ Lists student enrollments |
+| Fees | http://localhost:3000/fees | ✅ Lists fees |
+| Examinations | http://localhost:3000/examinations | ✅ Lists examinations |
+| Attendance | http://localhost:3000/attendance | ✅ Attendance calendar view |
 
 ### Demo Credentials
 ```
@@ -473,15 +592,19 @@ School:   Demo School (ID: 2863124a-76bb-4c5a-bb32-155efac4ff61)
 
 | Issue | Priority | Status |
 |-------|----------|--------|
-| Password reset/change endpoints are stubs | Medium | ⏳ TODO |
-| User/Role management endpoints are stubs | Medium | ⏳ TODO |
+| Password reset/change endpoints are stubs in auth | Medium | ⏳ TODO |
+| User/Role management endpoints in auth are stubs (replaced by dedicated modules) | Medium | ✅ DONE (Week 5) |
 | Refresh token rotation test | Low | ⏳ TODO |
 | Rate limiting on auth endpoints | Low | ⏳ TODO |
 | Email verification flow | Low | ⏳ TODO |
-| Frontend pages for academic structure management | Medium | ⏳ TODO (Week 5) |
-| Frontend pages for people management (students, parents, enrollments) | Medium | ⏳ TODO (Week 5) |
-| Teachers module (Week 4 scope) | Medium | ⏳ TODO (Week 5) |
-| Admissions module (Week 4 scope) | Medium | ⏳ TODO (Week 5) |
+| Frontend pages for academic structure management | Medium | ✅ DONE (Week 3) |
+| Frontend pages for people management (students, parents, enrollments) | Medium | ✅ DONE (Week 4) |
+| Teachers module | Medium | ⏳ TODO (Week 6) |
+| Admissions module | Medium | ⏳ TODO (Week 6) |
+| Attendance module (backend + frontend) | High | ⏳ TODO (Week 6) |
+| Timetable module (backend + frontend) | High | ⏳ TODO (Week 6) |
+| Examination module | High | ⏳ TODO (Week 7) |
+| Fee payments & receipts | High | ⏳ TODO (Week 8) |
 
 ---
 

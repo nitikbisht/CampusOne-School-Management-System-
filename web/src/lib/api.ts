@@ -12,6 +12,34 @@ export class ApiError extends Error {
   }
 }
 
+/**
+ * Extract items from API response.
+ * Handles both paginated responses (data.items) and simple array responses (data).
+ */
+export function extractItems<T>(response: unknown): T[] {
+  const data = (response as { data?: unknown }).data;
+  if (!data) return [];
+  if (Array.isArray(data)) return data as T[];
+  if (typeof data === "object" && data !== null && "items" in data) {
+    return (data as { items: T[] }).items;
+  }
+  return [];
+}
+
+/**
+ * Extract pagination info from API response.
+ * Returns null for simple array responses.
+ */
+export function extractPagination(response: unknown): { total: number; page: number; limit: number; totalPages: number } | null {
+  const data = (response as { data?: unknown }).data;
+  if (!data || typeof data !== "object" || Array.isArray(data)) return null;
+  const d = data as { total?: number; page?: number; limit?: number; totalPages?: number };
+  if (typeof d.total === "number" && typeof d.page === "number" && typeof d.limit === "number" && typeof d.totalPages === "number") {
+    return { total: d.total, page: d.page, limit: d.limit, totalPages: d.totalPages };
+  }
+  return null;
+}
+
 /** Typed fetch wrapper for the CampusOne API. All API calls in the web app go through this. */
 export async function apiFetch<T>(
   path: string,

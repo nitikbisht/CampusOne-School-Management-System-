@@ -36,7 +36,20 @@ export default function ParentsPage() {
   const [pagination, setPagination] = useState({ page: 1, limit: 20, total: 0, totalPages: 0 });
   const [showModal, setShowModal] = useState(false);
   const [editingParent, setEditingParent] = useState<Parent | null>(null);
-  const [formData, setFormData] = useState({
+  interface ParentFormData {
+  firstName: string;
+  lastName: string;
+  middleName?: string;
+  phone: string;
+  email?: string;
+  occupation?: string;
+  address?: string;
+  city?: string;
+  state?: string;
+  pincode?: string;
+}
+
+  const [formData, setFormData] = useState<ParentFormData>({
     firstName: "",
     lastName: "",
     middleName: "",

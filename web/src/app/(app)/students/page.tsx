@@ -41,13 +41,31 @@ export default function StudentsPage() {
   const [pagination, setPagination] = useState({ page: 1, limit: 20, total: 0, totalPages: 0 });
   const [showModal, setShowModal] = useState(false);
   const [editingStudent, setEditingStudent] = useState<Student | null>(null);
-  const [formData, setFormData] = useState({
+  interface StudentFormData {
+  admissionNumber: string;
+  firstName: string;
+  lastName: string;
+  middleName?: string;
+  dateOfBirth: string;
+  gender: "MALE" | "FEMALE" | "OTHER";
+  bloodGroup?: string;
+  address?: string;
+  city?: string;
+  state?: string;
+  pincode?: string;
+  phone?: string;
+  email?: string;
+  admissionDate: string;
+  status: "ACTIVE" | "INACTIVE" | "GRADUATED" | "TRANSFERRED";
+}
+
+  const [formData, setFormData] = useState<StudentFormData>({
     admissionNumber: "",
     firstName: "",
     lastName: "",
     middleName: "",
     dateOfBirth: "",
-    gender: "MALE" as "MALE" | "FEMALE" | "OTHER",
+    gender: "MALE",
     bloodGroup: "",
     address: "",
     city: "",
@@ -56,7 +74,7 @@ export default function StudentsPage() {
     phone: "",
     email: "",
     admissionDate: "",
-    status: "ACTIVE" as "ACTIVE" | "INACTIVE" | "GRADUATED" | "TRANSFERRED",
+    status: "ACTIVE",
   });
   const [submitting, setSubmitting] = useState(false);
   const fetchStudents = async () => {
@@ -65,7 +83,7 @@ export default function StudentsPage() {
       const res = await apiFetch<PaginatedResponse<Student>>(
         `/students?page=${pagination.page}&limit=${pagination.limit}`
       );
-      setStudents(res.data);
+      setStudents(res.data.items);
       setPagination((prev) => ({ ...prev, total: res.data.total, totalPages: res.data.totalPages }));
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Failed to fetch students");
@@ -220,7 +238,7 @@ export default function StudentsPage() {
                   <td colSpan={9} className="px-6 py-12 text-center text-gray-500">No students found</td>
                 </tr>
               ) : (
-                students.map((student) => (
+                students.length >0 && students?.map((student) => (
                   <tr key={student.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 font-mono text-sm text-gray-900">{student.admissionNumber}</td>
                     <td className="px-6 py-4">

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/lib/auth-context";
-import { apiFetch, ApiError } from "@/lib/api";
+import { apiFetch, ApiError, extractItems, extractPagination } from "@/lib/api";
 
 interface AcademicYear {
   id: string;
@@ -13,16 +13,6 @@ interface AcademicYear {
   isCurrent: boolean;
   createdAt: string;
   updatedAt: string;
-}
-
-interface PaginatedResponse<T> {
-  data: {
-    items: T[];
-    total: number;
-    page: number;
-    limit: number;
-    totalPages: number;
-  };
 }
 
 export default function AcademicYearsPage() {
@@ -44,11 +34,12 @@ export default function AcademicYearsPage() {
   const fetchYears = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await apiFetch<PaginatedResponse<AcademicYear>>(
+      const res = await apiFetch(
         `/academic-years?page=${pagination.page}&limit=${pagination.limit}`
       );
-      setYears(res.data);
-      setPagination((prev) => ({ ...prev, total: res.data.total, totalPages: res.data.totalPages }));
+      setYears(extractItems<AcademicYear>(res));
+      const pg = extractPagination(res);
+      if (pg) setPagination((prev) => ({ ...prev, total: pg.total, totalPages: pg.totalPages }));
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Failed to fetch academic years");
     } finally {

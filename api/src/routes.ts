@@ -10,6 +10,9 @@ import { classSubjectRoutes } from "./modules/class-subjects/class-subject.route
 import { studentRoutes } from "./modules/students/student.routes.js";
 import { parentRoutes } from "./modules/parents/parent.routes.js";
 import { enrollmentRoutes } from "./modules/student-enrollments/enrollment.routes.js";
+import { feeRoutes } from "./modules/fees/fee.routes.js";
+import { userRoutes } from "./modules/users/user.routes.js";
+import { roleRoutes } from "./modules/roles/role.routes.js";
 
 export const routes = Router();
 
@@ -24,3 +27,6 @@ routes.use("/class-subjects", classSubjectRoutes);
 routes.use("/students", studentRoutes);
 routes.use("/parents", parentRoutes);
 routes.use("/student-enrollments", enrollmentRoutes);
+routes.use("/fees", feeRoutes);
+routes.use("/users", userRoutes);
+routes.use("/roles", roleRoutes);

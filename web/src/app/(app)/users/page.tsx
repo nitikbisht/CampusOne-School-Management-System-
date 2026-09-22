@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/lib/auth-context";
-import { apiFetch, ApiError } from "@/lib/api";
+import { apiFetch, ApiError, extractItems, extractPagination } from "@/lib/api";
 interface User {
   id: string;
   email: string;
@@ -15,14 +15,14 @@ interface User {
   createdAt: string;
   updatedAt: string;
 }
-interface PaginatedResponse<T> {
-  data: {
-    items: T[];
-    total: number;
-    page: number;
-    limit: number;
-    totalPages: number;
-  };
+
+interface UserFormData {
+  email: string;
+  firstName?: string;
+  lastName?: string;
+  phone?: string;
+  password?: string;
+  isActive: boolean;
 }
 export default function UsersPage() {
   const { user } = useAuth();
@@ -32,7 +32,7 @@ export default function UsersPage() {
   const [pagination, setPagination] = useState({ page: 1, limit: 20, total: 0, totalPages: 0 });
   const [showModal, setShowModal] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<UserFormData>({
     email: "",
     firstName: "",
     lastName: "",
@@ -41,23 +41,25 @@ export default function UsersPage() {
     isActive: true,
   });
   const [submitting, setSubmitting] = useState(false);
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await apiFetch<PaginatedResponse<User>>(
+      const res = await apiFetch(
         `/users?page=${pagination.page}&limit=${pagination.limit}`
       );
-      setUsers(res.data.items);
-      setPagination((prev) => ({ ...prev, total: res.data.total, totalPages: res.data.totalPages }));
+      console.log(extractItems<User>(res),"res in users")
+      setUsers(extractItems<User>(res));
+      const pg = extractPagination(res);
+      if (pg) setPagination((prev) => ({ ...prev, total: pg.total, totalPages: pg.totalPages }));
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Failed to fetch users");
     } finally {
       setLoading(false);
     }
-  };
+  }, [pagination.page, pagination.limit]);
   useEffect(() => {
     fetchUsers();
-  }, [pagination.page]);
+  }, [fetchUsers]);
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
@@ -202,7 +204,7 @@ export default function UsersPage() {
                     </td>
                     <td className="px-6 py-4 text-gray-900">
                       {u.roles.length > 0 ? (
-                        u.roles.map((r) => <span key={r} className="mr-1 px-2 py-0.5 text-xs bg-blue-100 text-blue-800 rounded">{r}</span>)
+                        u?.roles.map((r) => <span key={r.roleId} className="mr-1 px-2 py-0.5 text-xs bg-blue-100 text-blue-800 rounded">{r.role.name}</span>)
                       ) : (
                         <span className="text-gray-400">No roles</span>
                       )}

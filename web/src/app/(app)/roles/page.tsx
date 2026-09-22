@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/lib/auth-context";
-import { apiFetch, ApiError } from "@/lib/api";
+import { apiFetch, ApiError, extractItems, extractPagination } from "@/lib/api";
 interface Role {
   id: string;
   name: string;
@@ -15,14 +15,10 @@ interface Permission {
   key: string;
   description: string;
 }
-interface PaginatedResponse<T> {
-  data: {
-    items: T[];
-    total: number;
-    page: number;
-    limit: number;
-    totalPages: number;
-  };
+interface RoleFormData {
+  name: string;
+  description?: string;
+  permissions: string[];
 }
 export default function RolesPage() {
   const { user } = useAuth();
@@ -33,38 +29,40 @@ export default function RolesPage() {
   const [pagination, setPagination] = useState({ page: 1, limit: 20, total: 0, totalPages: 0 });
   const [showModal, setShowModal] = useState(false);
   const [editingRole, setEditingRole] = useState<Role | null>(null);
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<RoleFormData>({
     name: "",
     description: "",
-    permissions: [] as string[],
+    permissions: [],
   });
   const [submitting, setSubmitting] = useState(false);
-  const fetchRoles = async () => {
+  const fetchRoles = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await apiFetch<PaginatedResponse<Role>>(
+      const res = await apiFetch(
         `/roles?page=${pagination.page}&limit=${pagination.limit}`
       );
-      setRoles(res.data.items);
-      setPagination((prev) => ({ ...prev, total: res.data.total, totalPages: res.data.totalPages }));
+      console.log(extractItems<Role>(res),"extractItems<Role>(res)")
+      setRoles(extractItems<Role>(res));
+      const pg = extractPagination(res);
+      if (pg) setPagination((prev) => ({ ...prev, total: pg.total, totalPages: pg.totalPages }));
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Failed to fetch roles");
     } finally {
       setLoading(false);
     }
-  };
-  const fetchPermissions = async () => {
+  }, [pagination.page, pagination.limit]);
+  const fetchPermissions = useCallback(async () => {
     try {
-      const res = await apiFetch<PaginatedResponse<Permission>>("/permissions?limit=500");
-      setPermissions(res.data.items);
+      const res = await apiFetch("/auth/permissions?limit=500");
+      setPermissions(extractItems<Permission>(res));
     } catch (err) {
       console.error("Failed to fetch permissions", err);
     }
-  };
+  }, []);
   useEffect(() => {
     fetchRoles();
     fetchPermissions();
-  }, [pagination.page]);
+  }, [fetchRoles, fetchPermissions]);
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
@@ -198,8 +196,8 @@ export default function RolesPage() {
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex flex-wrap gap-1">
-                        {role.permissions.slice(0, 5).map((p) => (
-                          <span key={p} className="px-2 py-0.5 text-xs bg-blue-50 text-blue-700 rounded">{p}</span>
+                        {role.permissions.slice(0, 5).map((p,i) => (
+                          <span key={p.roleId + i} className="px-2 py-0.5 text-xs bg-blue-50 text-blue-700 rounded">{p.permission.action}</span>
                         ))}
                         {role.permissions.length > 5 && (
                           <span className="px-2 py-0.5 text-xs bg-gray-100 text-gray-600 rounded">+{role.permissions.length - 5} more</span>

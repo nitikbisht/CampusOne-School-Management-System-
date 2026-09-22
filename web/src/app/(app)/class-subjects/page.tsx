@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/lib/auth-context";
-import { apiFetch, ApiError } from "@/lib/api";
+import { apiFetch, ApiError, extractItems, extractPagination } from "@/lib/api";
 
 interface ClassSubject {
   id: string;
@@ -17,16 +17,6 @@ interface ClassSubject {
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
-}
-
-interface PaginatedResponse<T> {
-  data: {
-    items: T[];
-    total: number;
-    page: number;
-    limit: number;
-    totalPages: number;
-  };
 }
 
 export default function ClassSubjectsPage() {
@@ -53,22 +43,23 @@ export default function ClassSubjectsPage() {
   const fetchClassSubjects = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await apiFetch<PaginatedResponse<ClassSubject>>(
+      const res = await apiFetch(
         `/class-subjects?page=${pagination.page}&limit=${pagination.limit}`
       );
-      setClassSubjects(res.data);
-      setPagination((prev) => ({ ...prev, total: res.data.total, totalPages: res.data.totalPages }));
+      setClassSubjects(extractItems<ClassSubject>(res));
+      const pg = extractPagination(res);
+      if (pg) setPagination((prev) => ({ ...prev, total: pg.total, totalPages: pg.totalPages }));
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Failed to fetch class subjects");
     } finally {
       setLoading(false);
     }
-  }, [pagination.page]);
+  }, [pagination.page, pagination.limit]);
 
   const fetchClasses = useCallback(async () => {
     try {
-      const res = await apiFetch<PaginatedResponse<{id: string, name: string, displayName: string}>>("/classes?limit=100");
-      setClasses(res.data);
+      const res = await apiFetch("/classes?limit=100");
+      setClasses(extractItems<{id: string, name: string, displayName: string}>(res));
     } catch (err) {
       console.error("Failed to fetch classes", err);
     }
@@ -76,8 +67,8 @@ export default function ClassSubjectsPage() {
 
   const fetchSubjects = useCallback(async () => {
     try {
-      const res = await apiFetch<PaginatedResponse<{id: string, name: string, code: string}>>("/subjects?limit=100");
-      setSubjects(res.data);
+      const res = await apiFetch("/subjects?limit=100");
+      setSubjects(extractItems<{id: string, name: string, code: string}>(res));
     } catch (err) {
       console.error("Failed to fetch subjects", err);
     }
@@ -85,8 +76,8 @@ export default function ClassSubjectsPage() {
 
   const fetchTeachers = useCallback(async () => {
     try {
-      const res = await apiFetch<PaginatedResponse<{id: string, firstName: string, lastName: string, email: string}>>("/users?role=teacher&limit=100");
-      setTeachers(res.data);
+      const res = await apiFetch("/users?role=teacher&limit=100");
+      setTeachers(extractItems<{id: string, firstName: string, lastName: string, email: string}>(res));
     } catch (err) {
       console.error("Failed to fetch teachers", err);
     }
@@ -94,8 +85,8 @@ export default function ClassSubjectsPage() {
 
   const fetchAcademicYears = useCallback(async () => {
     try {
-      const res = await apiFetch<PaginatedResponse<{id: string, name: string}>>("/academic-years?limit=100");
-      setAcademicYears(res.data);
+      const res = await apiFetch("/academic-years?limit=100");
+      setAcademicYears(extractItems<{id: string, name: string}>(res));
     } catch (err) {
       console.error("Failed to fetch academic years", err);
     }

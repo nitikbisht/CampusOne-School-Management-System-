@@ -48,6 +48,11 @@ model School {
   certificates       Certificate[]
   certificateTypes   CertificateType[]
   auditLogs          AuditLog[]
+  periods            Period[]
+  rooms              Room[]
+  timetables         Timetable[]
+  timetableEntries   TimetableEntry[]
+  fees               Fee[]
 
   @@map("schools")
 }
@@ -61,14 +66,17 @@ model User {
   passwordHash String
   firstName    String
   lastName     String
+  phone        String?
   isActive     Boolean   @default(true)
   lastLoginAt  DateTime?
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
-  school         School           @relation(fields: [schoolId], references: [id])
-  roles          UserRole[]
-  refreshTokens  RefreshToken[]
+  school                    School             @relation(fields: [schoolId], references: [id])
+  roles                     UserRole[]
+  refreshTokens             RefreshToken[]
+  timetableEntries          TimetableEntry[]   @relation("TeacherTimetableEntries")
+  originalTimetableEntries  TimetableEntry[]   @relation("OriginalTeacherTimetableEntries")
 
   @@unique([schoolId, email])
   @@index([schoolId])
@@ -272,6 +280,9 @@ model AcademicYear {
   attendances         Attendance[]
   leaveRequests       LeaveRequest[]
   studentMarks        StudentMark[]
+  timetables          Timetable[]
+  timetableEntries    TimetableEntry[]
+  fees                Fee[]
 
   @@unique([schoolId, name])
   @@index([schoolId])
@@ -293,6 +304,8 @@ model SchoolClass {
   studentEnrollments  StudentEnrollment[]
   attendances         Attendance[]
   leaveRequests       LeaveRequest[]
+  timetableEntries    TimetableEntry[]
+  fees                Fee[]
 
   @@unique([schoolId, name])
   @@map("classes")
@@ -316,6 +329,7 @@ model Section {
   studentEnrollments  StudentEnrollment[]
   attendances         Attendance[]
   leaveRequests       LeaveRequest[]
+  timetableEntries    TimetableEntry[]
 
   @@unique([academicYearId, classId, name])
   @@index([schoolId])
@@ -346,9 +360,10 @@ model Subject {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  school      School         @relation(fields: [schoolId], references: [id])
-  subjectType SubjectType    @relation(fields: [subjectTypeId], references: [id])
-  classes     ClassSubject[]
+  school         School            @relation(fields: [schoolId], references: [id])
+  subjectType    SubjectType       @relation(fields: [subjectTypeId], references: [id])
+  classes        ClassSubject[]
+  timetableEntries TimetableEntry[]
 
   @@unique([schoolId, code])
   @@map("subjects")
@@ -368,6 +383,161 @@ model ClassSubject {
   @@unique([classId, subjectId])
   @@index([schoolId])
   @@map("class_subjects")
+}
+
+// Fee structure for the school
+enum FeeFrequency {
+  ONE_TIME
+  MONTHLY
+  QUARTERLY
+  SEMESTER
+  ANNUAL
+}
+
+model Fee {
+  id             String       @id @default(uuid()) @db.Uuid
+  schoolId       String       @db.Uuid
+  name           String
+  description    String?
+  amount         Decimal      @db.Decimal(10, 2)
+  frequency      FeeFrequency
+  academicYearId String       @db.Uuid
+  classId        String?      @db.Uuid
+  dueDate        DateTime?    @db.Date
+  isActive       Boolean      @default(true)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  school         School       @relation(fields: [schoolId], references: [id])
+  academicYear   AcademicYear @relation(fields: [academicYearId], references: [id])
+  class          SchoolClass? @relation(fields: [classId], references: [id])
+
+  @@index([schoolId])
+  @@index([schoolId, academicYearId])
+  @@map("fees")
+}
+
+// ---------- Timetable (Phase 7) ----------
+
+enum DayOfWeek {
+  MONDAY
+  TUESDAY
+  WEDNESDAY
+  THURSDAY
+  FRIDAY
+  SATURDAY
+  SUNDAY
+}
+
+enum TimetableStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+// Period master: time slots for the school day
+model Period {
+  id          String   @id @default(uuid()) @db.Uuid
+  schoolId    String   @db.Uuid
+  name        String   // e.g., "Period 1", "Morning Assembly"
+  startTime   String   // HH:MM format (24-hour)
+  endTime     String   // HH:MM format (24-hour)
+  displayOrder Int      @default(0)
+  isBreak     Boolean  @default(false) // For recess, lunch breaks
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  school      School            @relation(fields: [schoolId], references: [id])
+  entries     TimetableEntry[]
+
+  @@unique([schoolId, name])
+  @@index([schoolId])
+  @@map("periods")
+}
+
+// Room master for room allocation
+model Room {
+  id          String   @id @default(uuid()) @db.Uuid
+  schoolId    String   @db.Uuid
+  name        String   // e.g., "Room 101", "Science Lab", "Auditorium"
+  code        String   // Short code e.g., "R101", "SCI-LAB"
+  capacity    Int?
+  type        String?  // CLASSROOM, LAB, LIBRARY, AUDITORIUM, etc.
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  school      School            @relation(fields: [schoolId], references: [id])
+  entries     TimetableEntry[]
+
+  @@unique([schoolId, code])
+  @@index([schoolId])
+  @@map("rooms")
+}
+
+// Timetable: a published timetable for a specific scope (school, class, teacher)
+model Timetable {
+  id             String          @id @default(uuid()) @db.Uuid
+  schoolId       String          @db.Uuid
+  academicYearId String          @db.Uuid
+  name           String          // e.g., "Class 10-A Timetable 2026-27"
+  scope          String          // SCHOOL, CLASS, TEACHER
+  scopeId        String?         // classId or teacherId when scope is CLASS or TEACHER
+  status         TimetableStatus @default(DRAFT)
+  version        Int             @default(1)
+  publishedAt    DateTime?
+  publishedById  String?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  school         School            @relation(fields: [schoolId], references: [id])
+  academicYear   AcademicYear      @relation(fields: [academicYearId], references: [id])
+  entries        TimetableEntry[]
+
+  @@unique([schoolId, academicYearId, scope, scopeId, name])
+  @@index([schoolId, academicYearId])
+  @@index([schoolId, scope, scopeId])
+  @@map("timetables")
+}
+
+// Individual entries in a timetable: which period, subject, teacher, room on which day
+model TimetableEntry {
+  id           String   @id @default(uuid()) @db.Uuid
+  schoolId     String   @db.Uuid
+  timetableId  String   @db.Uuid
+  academicYearId String @db.Uuid
+  periodId     String   @db.Uuid
+  dayOfWeek    DayOfWeek
+  subjectId    String?  @db.Uuid // null for breaks/free periods
+  teacherId    String?  @db.Uuid // userId of teacher
+  roomId       String?  @db.Uuid
+  classId      String?  @db.Uuid // for class-scoped timetables
+  sectionId    String?  @db.Uuid
+  isSubstitution Boolean @default(false)
+  originalTeacherId String? @db.Uuid // for substitution tracking
+  notes        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  school       School         @relation(fields: [schoolId], references: [id])
+  timetable    Timetable      @relation(fields: [timetableId], references: [id], onDelete: Cascade)
+  academicYear AcademicYear   @relation(fields: [academicYearId], references: [id])
+  period       Period         @relation(fields: [periodId], references: [id])
+  subject      Subject?       @relation(fields: [subjectId], references: [id])
+  teacher      User?          @relation("TeacherTimetableEntries", fields: [teacherId], references: [id])
+  originalTeacher User?       @relation("OriginalTeacherTimetableEntries", fields: [originalTeacherId], references: [id])
+  room         Room?          @relation(fields: [roomId], references: [id])
+  class        SchoolClass?   @relation(fields: [classId], references: [id])
+  section      Section?       @relation(fields: [sectionId], references: [id])
+
+  @@unique([timetableId, periodId, dayOfWeek]) // One entry per period per day per timetable
+  @@index([schoolId, timetableId])
+  @@index([schoolId, academicYearId])
+  @@index([schoolId, teacherId, dayOfWeek])
+  @@index([schoolId, classId, sectionId, dayOfWeek])
+  @@index([schoolId, roomId, dayOfWeek])
+  @@map("timetable_entries")
 }
 
 // ---------- Auth tokens ----------

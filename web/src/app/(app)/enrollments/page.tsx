@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/lib/auth-context";
-import { apiFetch, ApiError } from "@/lib/api";
+import { apiFetch, ApiError, extractItems, extractPagination } from "@/lib/api";
 interface Enrollment {
   id: string;
   studentId: string;
@@ -18,14 +18,14 @@ interface Enrollment {
   createdAt: string;
   updatedAt: string;
 }
-interface PaginatedResponse<T> {
-  data: {
-    items: T[];
-    total: number;
-    page: number;
-    limit: number;
-    totalPages: number;
-  };
+interface EnrollmentFormData {
+  studentId: string;
+  classId: string;
+  sectionId: string;
+  academicYearId: string;
+  enrollmentDate: string;
+  status: "ACTIVE" | "WITHDRAWN" | "COMPLETED" | "TRANSFERRED";
+  rollNumber?: string;
 }
 export default function EnrollmentsPage() {
   const { user } = useAuth();
@@ -35,13 +35,13 @@ export default function EnrollmentsPage() {
   const [pagination, setPagination] = useState({ page: 1, limit: 20, total: 0, totalPages: 0 });
   const [showModal, setShowModal] = useState(false);
   const [editingEnrollment, setEditingEnrollment] = useState<Enrollment | null>(null);
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<EnrollmentFormData>({
     studentId: "",
     classId: "",
     sectionId: "",
     academicYearId: "",
     enrollmentDate: "",
-    status: "ACTIVE" as "ACTIVE" | "WITHDRAWN" | "COMPLETED" | "TRANSFERRED",
+    status: "ACTIVE",
     rollNumber: "",
   });
   const [submitting, setSubmitting] = useState(false);
@@ -49,59 +49,61 @@ export default function EnrollmentsPage() {
   const [classes, setClasses] = useState<{id: string, name: string, displayName: string}[]>([]);
   const [sections, setSections] = useState<{id: string, name: string}[]>([]);
   const [academicYears, setAcademicYears] = useState<{id: string, name: string}[]>([]);
-  const fetchEnrollments = async () => {
+  const fetchEnrollments = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await apiFetch<PaginatedResponse<Enrollment>>(
+      const res = await apiFetch(
         `/student-enrollments?page=${pagination.page}&limit=${pagination.limit}`
       );
-      setEnrollments(res.data.items);
-      setPagination((prev) => ({ ...prev, total: res.data.total, totalPages: res.data.totalPages }));
+      setEnrollments(extractItems<Enrollment>(res));
+      const pg = extractPagination(res);
+      if (pg) setPagination((prev) => ({ ...prev, total: pg.total, totalPages: pg.totalPages }));
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Failed to fetch enrollments");
     } finally {
       setLoading(false);
     }
-  };
-  const fetchStudents = async () => {
+  }, [pagination.page, pagination.limit]);
+  const fetchStudents = useCallback(async () => {
     try {
-      const res = await apiFetch<PaginatedResponse<{id: string, admissionNumber: string, firstName: string, lastName: string, middleName?: string}>>("/students?limit=200");
-      setStudents(res.data.items);
+      const res = await apiFetch(`/students?page=${pagination.page}&limit=${pagination.limit}`);
+
+      setStudents(extractItems<{id: string, admissionNumber: string, firstName: string, lastName: string, middleName?: string}>(res));
     } catch (err) {
       console.error("Failed to fetch students", err);
     }
-  };
-  const fetchClasses = async () => {
+  }, []);
+  const fetchClasses = useCallback(async () => {
     try {
-      const res = await apiFetch<PaginatedResponse<{id: string, name: string, displayName: string}>>("/classes?limit=100");
-      setClasses(res.data.items);
+      const res = await apiFetch("/classes?limit=100");
+      setClasses(extractItems<{id: string, name: string, displayName: string}>(res));
     } catch (err) {
       console.error("Failed to fetch classes", err);
     }
-  };
-  const fetchSections = async () => {
+  }, []);
+  const fetchSections = useCallback(async () => {
     try {
-      const res = await apiFetch<PaginatedResponse<{id: string, name: string}>>("/sections?limit=100");
-      setSections(res.data.items);
+      const res = await apiFetch("/sections?limit=100");
+      setSections(extractItems<{id: string, name: string}>(res));
     } catch (err) {
       console.error("Failed to fetch sections", err);
     }
-  };
-  const fetchAcademicYears = async () => {
+  }, []);
+  const fetchAcademicYears = useCallback(async () => {
     try {
-      const res = await apiFetch<PaginatedResponse<{id: string, name: string}>>("/academic-years?limit=100");
-      setAcademicYears(res.data.items);
+      const res = await apiFetch("/academic-years?limit=100");
+      setAcademicYears(extractItems<{id: string, name: string}>(res));
     } catch (err) {
       console.error("Failed to fetch academic years", err);
     }
-  };
+  }, []);
   useEffect(() => {
     fetchEnrollments();
     fetchStudents();
     fetchClasses();
     fetchSections();
     fetchAcademicYears();
-  }, [pagination.page]);
+  }, [fetchEnrollments, fetchStudents, fetchClasses, fetchSections, fetchAcademicYears]);
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);

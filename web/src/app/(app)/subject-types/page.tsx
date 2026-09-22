@@ -1,22 +1,13 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/lib/auth-context";
-import { apiFetch, ApiError } from "@/lib/api";
+import { apiFetch, ApiError, extractItems, extractPagination } from "@/lib/api";
 interface SubjectType {
   id: string;
   name: string;
   description?: string;
   createdAt: string;
   updatedAt: string;
-}
-interface PaginatedResponse<T> {
-  data: {
-    items: T[];
-    total: number;
-    page: number;
-    limit: number;
-    totalPages: number;
-  };
 }
 export default function SubjectTypesPage() {
   const { user } = useAuth();
@@ -31,23 +22,24 @@ export default function SubjectTypesPage() {
     description: "",
   });
   const [submitting, setSubmitting] = useState(false);
-  const fetchSubjectTypes = async () => {
+  const fetchSubjectTypes = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await apiFetch<PaginatedResponse<SubjectType>>(
+      const res = await apiFetch(
         `/subject-types?page=${pagination.page}&limit=${pagination.limit}`
       );
-      setSubjectTypes(res.data);
-      setPagination((prev) => ({ ...prev, total: res.data.total, totalPages: res.data.totalPages }));
+      setSubjectTypes(extractItems<SubjectType>(res));
+      const pg = extractPagination(res);
+      if (pg) setPagination((prev) => ({ ...prev, total: pg.total, totalPages: pg.totalPages }));
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Failed to fetch subject types");
     } finally {
       setLoading(false);
     }
-  };
+  }, [pagination.page, pagination.limit]);
   useEffect(() => {
     fetchSubjectTypes();
-  }, [pagination.page]);
+  }, [fetchSubjectTypes]);
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);

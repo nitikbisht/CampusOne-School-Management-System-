@@ -2,6 +2,7 @@ import { AppError } from "../../lib/errors.js";
 import jwt from "jsonwebtoken";
 import type { AuthContext } from "../../types/auth.js";
 import { authRepository } from "./auth.repository.js";
+import { schoolRepository } from "./school.repository.js";
 import type { User } from "@prisma/client";
 
 const ACCESS_TOKEN_EXPIRY = "15m";
@@ -61,8 +62,14 @@ function signRefreshToken(payload: { userId: string; schoolId: string }): string
 
 const authService = (() => {
   const repo = authRepository;
+  const schoolRepo = schoolRepository;
   return {
-    async login(schoolId: string, email: string, password: string) {
+    async login(schoolIdOrCode: string, email: string, password: string) {
+      // Resolve school by ID or code
+      const school = await schoolRepo.findByIdOrCode(schoolIdOrCode);
+      if (!school) throw AppError.unauthorized("Invalid school");
+      const schoolId = school.id;
+
       const user = await repo.findUserByEmail(schoolId, email);
       if (!user) throw AppError.unauthorized("Invalid email or password");
       if (!user.isActive) throw AppError.unauthorized("Account is deactivated");
@@ -87,7 +94,12 @@ const authService = (() => {
       return { accessToken, refreshToken, auth };
     },
 
-    async refresh(schoolId: string, refreshToken: string) {
+    async refresh(schoolIdOrCode: string, refreshToken: string) {
+      // Resolve school by ID or code
+      const school = await schoolRepo.findByIdOrCode(schoolIdOrCode);
+      if (!school) throw AppError.unauthorized("Invalid school");
+      const schoolId = school.id;
+
       const tokenHash = repo.hashToken(refreshToken);
       const stored = await repo.findRefreshTokenByHash(tokenHash);
       if (!stored) throw AppError.unauthorized("Invalid or expired refresh token");
