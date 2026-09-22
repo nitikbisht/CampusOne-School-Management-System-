@@ -1,8 +1,8 @@
 # CampusOne School Management System - Progress Tracker
 
-> **Last Updated:** 2026-09-22  
-> **Current Phase:** Week 5 Complete - People Management (Students, Parents, Enrollment, Users, Roles)  
-> **Next Phase:** Week 6 - Attendance & Timetable
+> **Last Updated:** 2026-09-23  
+> **Current Phase:** Week 6 Complete - Enrollment & Teacher Assignment (Teacher Eligibility, Teacher Assignment, Student Enrollment)  
+> **Next Phase:** Week 7 - Examinations
 
 ---
 
@@ -17,7 +17,7 @@
 | 3 | Academic Structure | ✅ **COMPLETE** | 2026-09-19 | Classes, Sections, Subjects, Subject Types, Class-Subject mapping - all CRUD APIs |
 | 4 | People Management | ✅ **COMPLETE** | 2026-09-20 | Students, Parents, Student Enrollment - all CRUD APIs + Parent-Student links |
 | 5 | User & Role Management | ✅ **COMPLETE** | 2026-09-22 | Users, Roles, Permissions - full CRUD APIs + Frontend pages |
-| 6 | Attendance & Timetable | ⏳ **PENDING** | - | Daily attendance, timetable, reports, analytics |
+| 6 | Enrollment & Teacher Assignment | ✅ **COMPLETE** | 2026-09-23 | Teacher Eligibility, Teacher Assignment, Student Enrollment (existing) - full CRUD APIs + Frontend pages |
 | 7 | Examinations | ⏳ **PENDING** | - | Exam scheduling, marks entry, report cards |
 | 8 | Fees & Finance | ⏳ **PENDING** | - | Fee structures, invoices, payments, receipts |
 | 9 | Communication | ⏳ **PENDING** | - | Notifications, announcements, messaging |
@@ -49,6 +49,22 @@
 | Frontend Roles page (list, create, edit, delete, permission picker UI) | ✅ | ✅ |
 | API permissions endpoint (/auth/permissions) | ✅ | ✅ |
 | All endpoints tested manually | ✅ | ✅ |
+| Web proxy working for all new endpoints | ✅ | ✅ |
+
+### Week 6 Deliverables Checklist
+
+| Deliverable | Status | Verified |
+|-------------|--------|----------|
+| Teacher Eligibility module (CRUD API + search/pagination + eligibility check endpoint) | ✅ | ✅ |
+| Teacher Assignment module (CRUD API + search/pagination + eligibility validation + conflict detection) | ✅ | ✅ |
+| Permissions catalog updated (teacher_eligibility:*, teacher_assignment:*) | ✅ | ✅ |
+| Default role permissions updated for all roles | ✅ | ✅ |
+| Prisma schema: TeacherEligibility & TeacherAssignment models with relations | ✅ | ✅ |
+| Database migration applied | ✅ | ✅ |
+| Seed data: 3 demo teachers, 7 eligibilities, 8 assignments | ✅ | ✅ |
+| Frontend Teacher Eligibilities page (list, create, edit, delete, class range selection) | ✅ | ✅ |
+| Frontend Teacher Assignments page (list, create, edit, delete, eligibility warnings, dynamic section filtering) | ✅ | ✅ |
+| API endpoints tested manually | ✅ | ✅ |
 | Web proxy working for all new endpoints | ✅ | ✅ |
 
 ### Week 3 Deliverables Checklist
@@ -112,6 +128,33 @@ api/src/modules/roles/
 | `api/src/lib/permissions.ts` | Added USER_*, ROLE_*, PERMISSION_LIST permissions; updated DEFAULT_ROLE_PERMISSIONS for all roles |
 | `api/src/routes.ts` | Registered users and roles module routes |
 | `api/prisma/seed.ts` | Syncs permissions for all system roles on seed |
+
+#### New Files (Week 6 - Teacher Eligibility & Teacher Assignment)
+```
+api/src/modules/teacher-eligibility/
+├── eligibility.schemas.ts       # Zod validation schemas
+├── eligibility.repository.ts    # Prisma data access layer
+├── eligibility.service.ts       # Business logic (CRUD, eligibility check)
+├── eligibility.controller.ts    # HTTP handlers
+└── eligibility.routes.ts        # Express routes with middleware
+
+api/src/modules/teacher-assignments/
+├── assignment.schemas.ts        # Zod validation schemas
+├── assignment.repository.ts     # Prisma data access layer
+├── assignment.service.ts        # Business logic (CRUD, eligibility validation, conflict detection)
+├── assignment.controller.ts     # HTTP handlers
+└── assignment.routes.ts         # Express routes with middleware
+```
+
+#### Modified Files (Week 6)
+| File | Changes |
+|------|---------|
+| `api/prisma/schema.prisma` | Added TeacherEligibility & TeacherAssignment models with relations to User, School, Subject, SchoolClass, AcademicYear, Section |
+| `api/src/lib/permissions.ts` | Added TEACHER_ELIGIBILITY_* (5) and TEACHER_ASSIGNMENT_* (5) permissions; updated DEFAULT_ROLE_PERMISSIONS for all roles |
+| `api/src/routes.ts` | Registered teacher-eligibilities and teacher-assignments routes |
+| `api/prisma/seed.ts` | Added 3 demo teachers (Teacher role), 7 eligibility records, 8 assignment records |
+| `api/prisma/migrations/20260922192422_add_teacher_eligibility_assignment/` | Migration for new TeacherEligibility and TeacherAssignment tables |
+
 ```
 api/src/modules/students/
 ├── student.schemas.ts       # Zod validation schemas
@@ -175,6 +218,23 @@ api/src/modules/auth/
 
 ### Frontend (Web) - Files Created/Modified
 
+#### New Files (Week 6 - Teacher Eligibility & Teacher Assignment)
+```
+api/src/modules/teacher-eligibility/
+├── eligibility.schemas.ts       # Zod validation schemas
+├── eligibility.repository.ts    # Prisma data access layer
+├── eligibility.service.ts       # Business logic (CRUD, eligibility check)
+├── eligibility.controller.ts    # HTTP handlers
+└── eligibility.routes.ts        # Express routes with middleware
+
+api/src/modules/teacher-assignments/
+├── assignment.schemas.ts        # Zod validation schemas
+├── assignment.repository.ts     # Prisma data access layer
+├── assignment.service.ts        # Business logic (CRUD, eligibility validation, conflict detection)
+├── assignment.controller.ts     # HTTP handlers
+└── assignment.routes.ts         # Express routes with middleware
+```
+
 #### New Files (Week 5 - Users & Roles Pages)
 ```
 web/src/app/(app)/
@@ -182,6 +242,15 @@ web/src/app/(app)/
 │   └── page.tsx          # Users management page with CRUD modal
 └── roles/
     └── page.tsx          # Roles management page with permission picker
+```
+
+#### New Files (Week 6 - Teacher Eligibility & Teacher Assignment Pages)
+```
+web/src/app/(app)/
+├── teacher-eligibilities/
+│   └── page.tsx          # Teacher Eligibilities management with class range selection
+└── teacher-assignments/
+    └── page.tsx          # Teacher Assignments management with eligibility warnings
 ```
 
 #### New Files (Week 2)
@@ -230,6 +299,24 @@ web/src/
 | PATCH | `/api/v1/roles/:id` | Required | role:update | Update a role (incl. permission sync) |
 | DELETE | `/api/v1/roles/:id` | Required | role:delete | Delete a role (blocks if assigned) |
 | GET | `/api/v1/auth/permissions` | Required | permission:list | List all permissions (for picker UI) |
+
+#### Week 6 - Enrollment & Teacher Assignment
+
+| Method | Endpoint | Auth | Permission | Description |
+|--------|----------|------|------------|-------------|
+| GET | `/api/v1/teacher-eligibilities` | Required | teacher_eligibility:view | List eligibilities (paginated, filterable) |
+| POST | `/api/v1/teacher-eligibilities` | Required | teacher_eligibility:create | Create eligibility (teacher, subject, class range) |
+| GET | `/api/v1/teacher-eligibilities/:id` | Required | teacher_eligibility:view | Get eligibility by ID |
+| PATCH | `/api/v1/teacher-eligibilities/:id` | Required | teacher_eligibility:update | Update eligibility |
+| DELETE | `/api/v1/teacher-eligibilities/:id` | Required | teacher_eligibility:delete | Delete eligibility |
+| GET | `/api/v1/teacher-eligibilities/check` | Required | teacher_eligibility:view | Check if teacher eligible for class/subject |
+| GET | `/api/v1/teacher-assignments` | Required | teacher_assignment:view | List assignments (paginated, filterable) |
+| POST | `/api/v1/teacher-assignments` | Required | teacher_assignment:create | Create assignment (validates eligibility, checks conflicts) |
+| GET | `/api/v1/teacher-assignments/:id` | Required | teacher_assignment:view | Get assignment by ID |
+| PATCH | `/api/v1/teacher-assignments/:id` | Required | teacher_assignment:update | Update assignment |
+| DELETE | `/api/v1/teacher-assignments/:id` | Required | teacher_assignment:delete | Delete assignment |
+| GET | `/api/v1/teacher-assignments/teacher-year` | Required | teacher_assignment:view | Get assignments by teacher & academic year |
+| GET | `/api/v1/teacher-assignments/class-section-year` | Required | teacher_assignment:view | Get assignments by class, section, academic year |
 
 #### Week 4 - People Management
 
@@ -328,6 +415,12 @@ web/src/
 | Subject | subject:view, subject:create, subject:update, subject:delete, subject:manage |
 | Subject Type | subject_type:view, subject_type:create, subject_type:update, subject_type:delete, subject_type:manage |
 | Class Subject | class_subject:view, class_subject:create, class_subject:update, class_subject:delete, class_subject:manage |
+
+**New Permissions Added (Week 6):**
+| Module | Permissions |
+|--------|-------------|
+| Teacher Eligibility | teacher_eligibility:view, teacher_eligibility:create, teacher_eligibility:update, teacher_eligibility:delete, teacher_eligibility:manage |
+| Teacher Assignment | teacher_assignment:view, teacher_assignment:create, teacher_assignment:update, teacher_assignment:delete, teacher_assignment:manage |
 
 **Roles (7 system roles):**
 | Role | Permissions |
@@ -526,6 +619,57 @@ curl -X GET "http://localhost:4000/api/v1/auth/permissions?limit=500" \
 # ✅ Returns 200 with all permissions grouped by module
 ```
 
+### Week 6 - Enrollment & Teacher Assignment Tests
+
+```bash
+# Login (gets cookies)
+curl -X POST http://localhost:4000/api/v1/auth/login \
+  -H "Content-Type: application/json" \
+  -H "x-school-id: DEMO" \
+  -d '{"email":"admin@campusone.test","password":"ChangeMe-12345"}' \
+  -c cookies.txt
+# ✅ Returns 200 with Set-Cookie headers
+
+# Teacher Eligibilities - List
+curl -X GET http://localhost:4000/api/v1/teacher-eligibilities \
+  -H "x-school-id: DEMO" -b cookies.txt
+# ✅ Returns 200 with paginated eligibilities (includes teacher, subject, class relations)
+
+# Teacher Eligibilities - Create (Sarah Johnson teaches Math for Classes 1-5)
+curl -X POST http://localhost:4000/api/v1/teacher-eligibilities \
+  -H "Content-Type: application/json" \
+  -H "x-school-id: DEMO" -b cookies.txt \
+  -d '{"teacherId":"<teacher1-id>","subjectId":"<math-subject-id>","classId":"<class1-id>","maxClassId":"<class5-id>"}'
+# ✅ Returns 201 with created eligibility
+
+# Teacher Eligibilities - Check Eligibility
+curl -X GET "http://localhost:4000/api/v1/teacher-eligibilities/check?teacherId=<teacher1-id>&subjectId=<math-subject-id>&classId=<class3-id>" \
+  -H "x-school-id: DEMO" -b cookies.txt
+# ✅ Returns 200 with { eligible: true }
+
+# Teacher Assignments - List
+curl -X GET http://localhost:4000/api/v1/teacher-assignments \
+  -H "x-school-id: DEMO" -b cookies.txt
+# ✅ Returns 200 with paginated assignments (includes teacher, subject, class, section, academic year)
+
+# Teacher Assignments - Create (assign Sarah Johnson to Class 1A Math for 2024-25)
+curl -X POST http://localhost:4000/api/v1/teacher-assignments \
+  -H "Content-Type: application/json" \
+  -H "x-school-id: DEMO" -b cookies.txt \
+  -d '{"teacherId":"<teacher1-id>","academicYearId":"<2024-25-id>","subjectId":"<math-subject-id>","classId":"<class1-id>","sectionId":"<section1a-id>","isPrimary":true}'
+# ✅ Returns 201 with created assignment (validates eligibility, checks primary conflict)
+
+# Teacher Assignments - By Teacher & Year
+curl -X GET "http://localhost:4000/api/v1/teacher-assignments/teacher-year?teacherId=<teacher1-id>&academicYearId=<2024-25-id>" \
+  -H "x-school-id: DEMO" -b cookies.txt
+# ✅ Returns 200 with assignments for teacher in academic year
+
+# Teacher Assignments - By Class, Section & Year
+curl -X GET "http://localhost:4000/api/v1/teacher-assignments/class-section-year?classId=<class1-id>&sectionId=<section1a-id>&academicYearId=<2024-25-id>" \
+  -H "x-school-id: DEMO" -b cookies.txt
+# ✅ Returns 200 with assignments for class/section/year
+```
+
 ### Week 4 - People Management Tests
 
 ### Web Proxy Tests (All Passing ✅)
@@ -580,6 +724,8 @@ curl -X GET http://localhost:3000/api/roles \
 | Fees | http://localhost:3000/fees | ✅ Lists fees |
 | Examinations | http://localhost:3000/examinations | ✅ Lists examinations |
 | Attendance | http://localhost:3000/attendance | ✅ Attendance calendar view |
+| Teacher Eligibilities | http://localhost:3000/teacher-eligibilities | ✅ Lists eligibilities with class range selection |
+| Teacher Assignments | http://localhost:3000/teacher-assignments | ✅ Lists assignments with eligibility warnings |
 
 ### Demo Credentials
 ```
@@ -599,10 +745,11 @@ School:   Demo School (ID: 2863124a-76bb-4c5a-bb32-155efac4ff61)
 | Email verification flow | Low | ⏳ TODO |
 | Frontend pages for academic structure management | Medium | ✅ DONE (Week 3) |
 | Frontend pages for people management (students, parents, enrollments) | Medium | ✅ DONE (Week 4) |
-| Teachers module | Medium | ⏳ TODO (Week 6) |
-| Admissions module | Medium | ⏳ TODO (Week 6) |
-| Attendance module (backend + frontend) | High | ⏳ TODO (Week 6) |
-| Timetable module (backend + frontend) | High | ⏳ TODO (Week 6) |
+| Teacher Eligibility module (backend + frontend) | Medium | ✅ DONE (Week 6) |
+| Teacher Assignment module (backend + frontend) | Medium | ✅ DONE (Week 6) |
+| Admissions module | Medium | ⏳ TODO (Week 7+) |
+| Attendance module (backend + frontend) | High | ⏳ TODO (Week 7) |
+| Timetable module (backend + frontend) | High | ⏳ TODO (Week 7) |
 | Examination module | High | ⏳ TODO (Week 7) |
 | Fee payments & receipts | High | ⏳ TODO (Week 8) |
 

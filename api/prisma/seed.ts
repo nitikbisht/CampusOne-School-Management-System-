@@ -89,6 +89,32 @@ async function main() {
     skipDuplicates: true,
   });
 
+  // Demo teachers
+  const teacherData = [
+    { email: "teacher1@campusone.test", firstName: "Sarah", lastName: "Johnson" },
+    { email: "teacher2@campusone.test", firstName: "Michael", lastName: "Chen" },
+    { email: "teacher3@campusone.test", firstName: "Emily", lastName: "Rodriguez" },
+  ];
+  const teacherIdByName = new Map<string, string>();
+  for (const t of teacherData) {
+    const teacher = await prisma.user.upsert({
+      where: { schoolId_email: { schoolId, email: t.email } },
+      update: {},
+      create: {
+        schoolId,
+        email: t.email,
+        passwordHash: await bcrypt.hash("ChangeMe-12345", 12),
+        firstName: t.firstName,
+        lastName: t.lastName,
+      },
+    });
+    teacherIdByName.set(`${t.firstName} ${t.lastName}`, teacher.id);
+    await prisma.userRole.createMany({
+      data: [{ userId: teacher.id, roleId: roleIdByName.get("Teacher") as string }],
+      skipDuplicates: true,
+    });
+  }
+
   // Academic year
   const year = await prisma.academicYear.upsert({
     where: { schoolId_name: { schoolId, name: "2026-27" } },
@@ -155,6 +181,101 @@ async function main() {
         subjectTypeId: typeIdByName.get(s.type) as string,
       },
     });
+  }
+
+  // Teacher Eligibilities
+  const subjectIdByCode = new Map<string, string>();
+  for (const s of subjects) {
+    const subject = await prisma.subject.findFirst({ where: { schoolId, code: s.code } });
+    if (subject) subjectIdByCode.set(s.code, subject.id);
+  }
+
+  const classIdByName = new Map<string, string>();
+  for (let n = 1; n <= 12; n++) {
+    const schoolClass = await prisma.schoolClass.findFirst({ where: { schoolId, name: `Class ${n}` } });
+    if (schoolClass) classIdByName.set(`Class ${n}`, schoolClass.id);
+  }
+
+  const eligibilities = [
+    { teacher: "Sarah Johnson", subject: "MATH", minClass: "Class 1", maxClass: "Class 5" },
+    { teacher: "Sarah Johnson", subject: "SCI", minClass: "Class 1", maxClass: "Class 5" },
+    { teacher: "Michael Chen", subject: "MATH", minClass: "Class 6", maxClass: "Class 10" },
+    { teacher: "Michael Chen", subject: "SCI", minClass: "Class 6", maxClass: "Class 10" },
+    { teacher: "Michael Chen", subject: "CS", minClass: "Class 9", maxClass: "Class 12" },
+    { teacher: "Emily Rodriguez", subject: "ENG", minClass: "Class 1", maxClass: "Class 12" },
+    { teacher: "Emily Rodriguez", subject: "SST", minClass: "Class 6", maxClass: "Class 12" },
+  ];
+
+  for (const e of eligibilities) {
+    const teacherId = teacherIdByName.get(e.teacher);
+    const subjectId = subjectIdByCode.get(e.subject);
+    const classId = classIdByName.get(e.minClass);
+    const maxClassId = classIdByName.get(e.maxClass);
+    if (teacherId && subjectId && classId) {
+      await prisma.teacherEligibility.upsert({
+        where: { schoolId_teacherId_subjectId_classId: { schoolId, teacherId, subjectId, classId } },
+        update: { maxClassId, isActive: true },
+        create: { schoolId, teacherId, subjectId, classId, maxClassId, isActive: true },
+      });
+    }
+  }
+
+  // Teacher Assignments for current academic year
+  const assignments = [
+    { teacher: "Sarah Johnson", subject: "MATH", class: "Class 3", section: "A" },
+    { teacher: "Sarah Johnson", subject: "SCI", class: "Class 3", section: "A" },
+    { teacher: "Michael Chen", subject: "MATH", class: "Class 8", section: "A" },
+    { teacher: "Michael Chen", subject: "SCI", class: "Class 8", section: "B" },
+    { teacher: "Michael Chen", subject: "CS", class: "Class 10", section: "A" },
+    { teacher: "Emily Rodriguez", subject: "ENG", class: "Class 3", section: "B" },
+    { teacher: "Emily Rodriguez", subject: "ENG", class: "Class 8", section: "A" },
+    { teacher: "Emily Rodriguez", subject: "SST", class: "Class 8", section: "B" },
+  ];
+
+  for (const a of assignments) {
+    const teacherId = teacherIdByName.get(a.teacher);
+    const subjectId = subjectIdByCode.get(a.subject);
+    const classId = classIdByName.get(a.class);
+    const section = await prisma.section.findFirst({
+      where: { schoolId, academicYearId: year.id, classId, name: a.section },
+    });
+    if (teacherId && subjectId && classId && section) {
+      // Check eligibility before assigning
+      const eligible = await prisma.teacherEligibility.findFirst({
+        where: {
+          schoolId,
+          teacherId,
+          subjectId,
+          classId: { lte: classId },
+          OR: [{ maxClassId: null }, { maxClassId: { gte: classId } }],
+          isActive: true,
+        },
+      });
+      if (eligible) {
+        await prisma.teacherAssignment.upsert({
+          where: {
+            schoolId_academicYearId_subjectId_classId_sectionId_teacherId: {
+              schoolId,
+              academicYearId: year.id,
+              subjectId,
+              classId,
+              sectionId: section.id,
+              teacherId,
+            },
+          },
+          update: { isPrimary: true },
+          create: {
+            schoolId,
+            teacherId,
+            academicYearId: year.id,
+            subjectId,
+            classId,
+            sectionId: section.id,
+            isPrimary: true,
+          },
+        });
+      }
+    }
   }
 
   console.log(`Seed complete. Demo login (once auth exists): ${email}`);

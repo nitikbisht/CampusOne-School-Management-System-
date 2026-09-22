@@ -53,6 +53,8 @@ model School {
   timetables         Timetable[]
   timetableEntries   TimetableEntry[]
   fees               Fee[]
+  teacherEligibilities TeacherEligibility[]
+  teacherAssignments TeacherAssignment[]
 
   @@map("schools")
 }
@@ -72,11 +74,13 @@ model User {
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
-  school                    School             @relation(fields: [schoolId], references: [id])
+  school                    School                 @relation(fields: [schoolId], references: [id])
   roles                     UserRole[]
   refreshTokens             RefreshToken[]
-  timetableEntries          TimetableEntry[]   @relation("TeacherTimetableEntries")
-  originalTimetableEntries  TimetableEntry[]   @relation("OriginalTeacherTimetableEntries")
+  timetableEntries          TimetableEntry[]       @relation("TeacherTimetableEntries")
+  originalTimetableEntries  TimetableEntry[]       @relation("OriginalTeacherTimetableEntries")
+  teacherEligibilities      TeacherEligibility[]   @relation("TeacherEligibilityTeacher")
+  teacherAssignments        TeacherAssignment[]    @relation("TeacherAssignmentTeacher")
 
   @@unique([schoolId, email])
   @@index([schoolId])
@@ -208,6 +212,58 @@ model StudentEnrollment {
   @@map("student_enrollments")
 }
 
+// Teacher eligibility: which class ranges and subjects a teacher can teach
+model TeacherEligibility {
+  id            String   @id @default(uuid()) @db.Uuid
+  schoolId      String   @db.Uuid
+  teacherId     String   @db.Uuid  // User ID (teacher)
+  subjectId     String   @db.Uuid
+  classId       String   @db.Uuid  // Min class (e.g., Class 1)
+  maxClassId    String?  @db.Uuid  // Max class (e.g., Class 5), null = single class
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  school    School       @relation(fields: [schoolId], references: [id])
+  teacher   User         @relation("TeacherEligibilityTeacher", fields: [teacherId], references: [id], onDelete: Cascade)
+  subject   Subject      @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  class     SchoolClass  @relation("TeacherEligibilityMinClass", fields: [classId], references: [id], onDelete: Cascade)
+  maxClass  SchoolClass? @relation("TeacherEligibilityMaxClass", fields: [maxClassId], references: [id], onDelete: Cascade)
+
+  @@unique([schoolId, teacherId, subjectId, classId])
+  @@index([schoolId, teacherId])
+  @@index([schoolId, subjectId])
+  @@map("teacher_eligibilities")
+}
+
+// Teacher assignment: assigns teacher to class/section/subject for an academic year
+model TeacherAssignment {
+  id             String   @id @default(uuid()) @db.Uuid
+  schoolId       String   @db.Uuid
+  teacherId      String   @db.Uuid  // User ID (teacher)
+  academicYearId String   @db.Uuid
+  subjectId      String   @db.Uuid
+  classId        String   @db.Uuid
+  sectionId      String   @db.Uuid
+  isPrimary      Boolean  @default(true)  // Primary vs co-teacher
+  assignedAt     DateTime @default(now())
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  school         School       @relation(fields: [schoolId], references: [id])
+  teacher        User         @relation("TeacherAssignmentTeacher", fields: [teacherId], references: [id], onDelete: Cascade)
+  academicYear   AcademicYear @relation(fields: [academicYearId], references: [id])
+  subject        Subject      @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  class          SchoolClass  @relation(fields: [classId], references: [id])
+  section        Section      @relation(fields: [sectionId], references: [id])
+
+  @@unique([schoolId, academicYearId, subjectId, classId, sectionId, teacherId])
+  @@index([schoolId, academicYearId])
+  @@index([schoolId, teacherId])
+  @@index([schoolId, classId, sectionId])
+  @@map("teacher_assignments")
+}
+
 model Role {
   id          String   @id @default(uuid()) @db.Uuid
   schoolId    String   @db.Uuid
@@ -283,6 +339,7 @@ model AcademicYear {
   timetables          Timetable[]
   timetableEntries    TimetableEntry[]
   fees                Fee[]
+  teacherAssignments  TeacherAssignment[]
 
   @@unique([schoolId, name])
   @@index([schoolId])
@@ -306,6 +363,9 @@ model SchoolClass {
   leaveRequests       LeaveRequest[]
   timetableEntries    TimetableEntry[]
   fees                Fee[]
+  teacherEligibilitiesMin TeacherEligibility[] @relation("TeacherEligibilityMinClass")
+  teacherEligibilitiesMax TeacherEligibility[] @relation("TeacherEligibilityMaxClass")
+  teacherAssignments  TeacherAssignment[]
 
   @@unique([schoolId, name])
   @@map("classes")
@@ -330,6 +390,7 @@ model Section {
   attendances         Attendance[]
   leaveRequests       LeaveRequest[]
   timetableEntries    TimetableEntry[]
+  teacherAssignments  TeacherAssignment[]
 
   @@unique([academicYearId, classId, name])
   @@index([schoolId])
@@ -364,6 +425,8 @@ model Subject {
   subjectType    SubjectType       @relation(fields: [subjectTypeId], references: [id])
   classes        ClassSubject[]
   timetableEntries TimetableEntry[]
+  teacherEligibilities TeacherEligibility[]
+  teacherAssignments TeacherAssignment[]
 
   @@unique([schoolId, code])
   @@map("subjects")

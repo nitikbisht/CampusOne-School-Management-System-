@@ -13,6 +13,8 @@ import { enrollmentRoutes } from "./modules/student-enrollments/enrollment.route
 import { feeRoutes } from "./modules/fees/fee.routes.js";
 import { userRoutes } from "./modules/users/user.routes.js";
 import { roleRoutes } from "./modules/roles/role.routes.js";
+import { eligibilityRoutes } from "./modules/teacher-eligibility/eligibility.routes.js";
+import { assignmentRoutes } from "./modules/teacher-assignments/assignment.routes.js";
 
 export const routes = Router();
 
@@ -30,3 +32,5 @@ routes.use("/student-enrollments", enrollmentRoutes);
 routes.use("/fees", feeRoutes);
 routes.use("/users", userRoutes);
 routes.use("/roles", roleRoutes);
+routes.use("/teacher-eligibilities", eligibilityRoutes);
+routes.use("/teacher-assignments", assignmentRoutes);

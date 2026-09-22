@@ -77,6 +77,20 @@ export const PERMISSIONS = {
   ROLE_MANAGE: "role:manage",
   PERMISSION_LIST: "permission:list",
 
+  // Teacher Eligibility
+  TEACHER_ELIGIBILITY_VIEW: "teacher_eligibility:view",
+  TEACHER_ELIGIBILITY_CREATE: "teacher_eligibility:create",
+  TEACHER_ELIGIBILITY_UPDATE: "teacher_eligibility:update",
+  TEACHER_ELIGIBILITY_DELETE: "teacher_eligibility:delete",
+  TEACHER_ELIGIBILITY_MANAGE: "teacher_eligibility:manage",
+
+  // Teacher Assignment
+  TEACHER_ASSIGNMENT_VIEW: "teacher_assignment:view",
+  TEACHER_ASSIGNMENT_CREATE: "teacher_assignment:create",
+  TEACHER_ASSIGNMENT_UPDATE: "teacher_assignment:update",
+  TEACHER_ASSIGNMENT_DELETE: "teacher_assignment:delete",
+  TEACHER_ASSIGNMENT_MANAGE: "teacher_assignment:manage",
+
   // Auditing
   AUDIT_VIEW: "audit:view",
 } as const;
