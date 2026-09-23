@@ -112,6 +112,15 @@ export default function RolesPage() {
     });
     setShowModal(true);
   };
+  const openPermissionsModal = (role: Role) => {
+    setEditingRole(role);
+    setFormData({
+      name: role.name,
+      description: role.description || "",
+      permissions: role.permissions,
+    });
+    setShowModal(true);
+  };
   const closeModal = () => {
     setShowModal(false);
     setEditingRole(null);
@@ -215,6 +224,17 @@ export default function RolesPage() {
                             >
                               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                              </svg>
+                            </button>
+                          ))}
+                          {((canUpdate || canManage) && !role.isSystem && (
+                            <button
+                              onClick={() => openPermissionsModal(role)}
+                              className="p-1.5 text-gray-500 hover:text-blue-700 hover:bg-blue-50 rounded transition-colors"
+                              title="Manage Permissions"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                               </svg>
                             </button>
                           ))}

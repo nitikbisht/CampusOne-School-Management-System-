@@ -16,6 +16,12 @@ interface User {
   updatedAt: string;
 }
 
+interface Role {
+  id: string;
+  name: string;
+  description?: string;
+}
+
 interface UserFormData {
   email: string;
   firstName?: string;
@@ -23,10 +29,12 @@ interface UserFormData {
   phone?: string;
   password?: string;
   isActive: boolean;
+  roleIds: string[];
 }
 export default function UsersPage() {
   const { user } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
+  const [roles, setRoles] = useState<Role[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [pagination, setPagination] = useState({ page: 1, limit: 20, total: 0, totalPages: 0 });
@@ -39,8 +47,19 @@ export default function UsersPage() {
     phone: "",
     password: "",
     isActive: true,
+    roleIds: [],
   });
   const [submitting, setSubmitting] = useState(false);
+  const fetchRoles = useCallback(async () => {
+    try {
+      const res = await apiFetch("/roles?limit=500");
+      const rolesData = extractItems<any>(res);
+      setRoles(rolesData);
+    } catch (err) {
+      console.error("Failed to fetch roles", err);
+    }
+  }, []);
+
   const fetchUsers = useCallback(async () => {
     try {
       setLoading(true);
@@ -59,7 +78,8 @@ export default function UsersPage() {
   }, [pagination.page, pagination.limit]);
   useEffect(() => {
     fetchUsers();
-  }, [fetchUsers]);
+    fetchRoles();
+  }, [fetchUsers, fetchRoles]);
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
@@ -123,6 +143,7 @@ export default function UsersPage() {
       phone: "",
       password: "",
       isActive: true,
+      roleIds: [],
     });
     setShowModal(true);
   };
@@ -135,6 +156,7 @@ export default function UsersPage() {
       phone: u.phone || "",
       password: "",
       isActive: u.isActive,
+      roleIds: u.roles || [],
     });
     setShowModal(true);
   };
@@ -336,6 +358,26 @@ export default function UsersPage() {
                     onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                     className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Roles</label>
+                  <select
+                    multiple
+                    value={formData.roleIds}
+                    onChange={(e) => {
+                      const selected = Array.from(e.target.selectedOptions, (opt) => opt.value);
+                      setFormData({ ...formData, roleIds: selected });
+                    }}
+                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    size={4}
+                  >
+                    {roles.map((r) => (
+                      <option key={r.id} value={r.id}>
+                        {r.name}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="mt-1 text-sm text-gray-500">Hold Ctrl/Cmd to select multiple roles</p>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">{editingUser ? "New Password (leave blank to keep current)" : "Password *"}</label>

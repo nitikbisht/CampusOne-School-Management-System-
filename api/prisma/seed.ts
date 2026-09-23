@@ -278,6 +278,107 @@ async function main() {
     }
   }
 
+  // Exams
+  const exams = [
+    { name: "Mid Term Exam", code: "MTE", startDate: "2026-09-15", endDate: "2026-09-25" },
+    { name: "Final Exam", code: "FINAL", startDate: "2027-02-15", endDate: "2027-02-28" },
+  ];
+
+  const examIdByCode = new Map<string, string>();
+  for (const e of exams) {
+    const exam = await prisma.exam.upsert({
+      where: { schoolId_academicYearId_code: { schoolId, academicYearId: year.id, code: e.code } },
+      update: { name: e.name, startDate: new Date(e.startDate), endDate: new Date(e.endDate), status: "SCHEDULED", isPublished: true },
+      create: { schoolId, academicYearId: year.id, name: e.name, code: e.code, startDate: new Date(e.startDate), endDate: new Date(e.endDate), status: "SCHEDULED", isPublished: true },
+    });
+    examIdByCode.set(e.code, exam.id);
+  }
+
+  // Exam Subjects - Add subjects to exams for classes 1-10 (reuse existing subjectIdByCode and classIdByName)
+  for (const examCode of ["MTE", "FINAL"]) {
+    const examId = examIdByCode.get(examCode);
+    if (!examId) continue;
+
+    for (const subjectCode of ["MATH", "ENG", "SCI", "SST", "CS"]) {
+      const subjectId = subjectIdByCode.get(subjectCode);
+      if (!subjectId) continue;
+
+      // Add to classes 3, 5, 8, 10 (representative classes)
+      for (const className of ["Class 3", "Class 5", "Class 8", "Class 10"]) {
+        const classId = classIdByName.get(className);
+        if (!classId) continue;
+
+        const examSubject = await prisma.examSubject.upsert({
+          where: { examId_subjectId_classId: { examId, subjectId, classId } },
+          update: { maxMarks: 100, passMarks: 33, weightage: 1.0, isActive: true },
+          create: { schoolId, examId, subjectId, classId, maxMarks: 100, passMarks: 33, weightage: 1.0, isActive: true },
+        });
+
+        // Add assessment components
+        const components = [
+          { name: "Theory", code: "TH", type: "THEORY", maxMarks: 80, passMarks: 26, weightage: 0.8, displayOrder: 1 },
+          { name: "Internal Assessment", code: "IA", type: "INTERNAL", maxMarks: 20, passMarks: 7, weightage: 0.2, displayOrder: 2 },
+        ];
+
+        for (const comp of components) {
+          await prisma.examAssessmentComponent.upsert({
+            where: { examSubjectId_code: { examSubjectId: examSubject.id, code: comp.code } },
+            update: { name: comp.name, type: comp.type, maxMarks: comp.maxMarks, passMarks: comp.passMarks, weightage: comp.weightage, displayOrder: comp.displayOrder, isActive: true },
+            create: { schoolId, examSubjectId: examSubject.id, ...comp, isActive: true },
+          });
+        }
+      }
+    }
+  }
+
+  // Exam Schedules - Create schedules for Class 8 sections A and B
+  const midTermId = examIdByCode.get("MTE");
+  if (midTermId) {
+    const examSubjects = await prisma.examSubject.findMany({
+      where: { examId: midTermId, classId: classIdByName.get("Class 8") },
+      include: { subject: true },
+    });
+
+    const sectionA = await prisma.section.findFirst({ where: { schoolId, academicYearId: year.id, classId: classIdByName.get("Class 8"), name: "A" } });
+    const sectionB = await prisma.section.findFirst({ where: { schoolId, academicYearId: year.id, classId: classIdByName.get("Class 8"), name: "B" } });
+
+    const room = await prisma.room.findFirst({ where: { schoolId, code: "R101" } });
+
+    const scheduleData = [
+      { subjectCode: "MATH", date: "2026-09-15", startTime: "09:00", endTime: "11:00" },
+      { subjectCode: "ENG", date: "2026-09-16", startTime: "09:00", endTime: "11:00" },
+      { subjectCode: "SCI", date: "2026-09-17", startTime: "09:00", endTime: "11:00" },
+      { subjectCode: "SST", date: "2026-09-18", startTime: "09:00", endTime: "11:00" },
+      { subjectCode: "CS", date: "2026-09-19", startTime: "09:00", endTime: "11:00" },
+    ];
+
+    for (const sched of scheduleData) {
+      const examSubject = examSubjects.find((es) => es.subject.code === sched.subjectCode);
+      if (!examSubject) continue;
+
+      for (const section of [sectionA, sectionB]) {
+        if (!section) continue;
+        await prisma.examSchedule.upsert({
+          where: {
+            id: "temp", // We'll use create with a unique constraint check instead
+          },
+          update: {},
+          create: {
+            schoolId,
+            examId: midTermId,
+            examSubjectId: examSubject.id,
+            classId: examSubject.classId,
+            sectionId: section.id,
+            date: new Date(sched.date),
+            startTime: sched.startTime,
+            endTime: sched.endTime,
+            roomId: room?.id,
+          },
+        }).catch(() => {}); // Ignore duplicates
+      }
+    }
+  }
+
   console.log(`Seed complete. Demo login (once auth exists): ${email}`);
 }
 

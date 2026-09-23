@@ -2,7 +2,6 @@
 
 import { hasPermission, type User } from "./auth";
 
-// Define all navigation items with their required permissions
 export interface NavItem {
   name: string;
   href: string;
@@ -36,6 +35,13 @@ export const NAVIGATION_GROUPS: NavGroup[] = [
     ],
   },
   {
+    label: "Teacher Management",
+    items: [
+      { name: "Teacher Eligibilities", href: "/teacher-eligibilities", icon: "🎯", permission: "teacher_eligibility:view" },
+      { name: "Teacher Assignments", href: "/teacher-assignments", icon: "📝", permission: "teacher_assignment:view" },
+    ],
+  },
+  {
     label: "People",
     items: [
       { name: "Students", href: "/students", icon: "🎓", permission: "student:view" },
@@ -51,10 +57,19 @@ export const NAVIGATION_GROUPS: NavGroup[] = [
     ],
   },
   {
+    label: "Examinations",
+    items: [
+      { name: "Examinations", href: "/examinations", icon: "📝", permission: "exam:view" },
+      { name: "Exam Subjects", href: "/examinations/subjects", icon: "📚", permission: "exam:view" },
+      { name: "Assessment Components", href: "/examinations/components", icon: "📊", permission: "exam:view" },
+      { name: "Exam Schedules", href: "/examinations/schedules", icon: "📅", permission: "exam:view" },
+      { name: "Student Marks", href: "/examinations/marks", icon: "📈", permission: "student_mark:view" },
+    ],
+  },
+  {
     label: "Reports",
     items: [
       { name: "Attendance", href: "/attendance", icon: "✅", permission: "attendance:view" },
-      { name: "Examinations", href: "/examinations", icon: "📝", permission: "exam:view" },
       { name: "Fees", href: "/fees", icon: "💰", permission: "fee:view" },
     ],
   },

@@ -55,6 +55,10 @@ model School {
   fees               Fee[]
   teacherEligibilities TeacherEligibility[]
   teacherAssignments TeacherAssignment[]
+  exams              Exam[]
+  examSubjects       ExamSubject[]
+  examAssessmentComponents ExamAssessmentComponent[]
+  examSchedules      ExamSchedule[]
 
   @@map("schools")
 }
@@ -81,6 +85,7 @@ model User {
   originalTimetableEntries  TimetableEntry[]       @relation("OriginalTeacherTimetableEntries")
   teacherEligibilities      TeacherEligibility[]   @relation("TeacherEligibilityTeacher")
   teacherAssignments        TeacherAssignment[]    @relation("TeacherAssignmentTeacher")
+  invigilatorSchedules      ExamSchedule[]         @relation("ExamInvigilator")
 
   @@unique([schoolId, email])
   @@index([schoolId])
@@ -340,6 +345,7 @@ model AcademicYear {
   timetableEntries    TimetableEntry[]
   fees                Fee[]
   teacherAssignments  TeacherAssignment[]
+  exams               Exam[]
 
   @@unique([schoolId, name])
   @@index([schoolId])
@@ -366,6 +372,8 @@ model SchoolClass {
   teacherEligibilitiesMin TeacherEligibility[] @relation("TeacherEligibilityMinClass")
   teacherEligibilitiesMax TeacherEligibility[] @relation("TeacherEligibilityMaxClass")
   teacherAssignments  TeacherAssignment[]
+  examSubjects        ExamSubject[]
+  examSchedules       ExamSchedule[]
 
   @@unique([schoolId, name])
   @@map("classes")
@@ -391,6 +399,7 @@ model Section {
   leaveRequests       LeaveRequest[]
   timetableEntries    TimetableEntry[]
   teacherAssignments  TeacherAssignment[]
+  examSchedules       ExamSchedule[]
 
   @@unique([academicYearId, classId, name])
   @@index([schoolId])
@@ -427,6 +436,7 @@ model Subject {
   timetableEntries TimetableEntry[]
   teacherEligibilities TeacherEligibility[]
   teacherAssignments TeacherAssignment[]
+  examSubjects     ExamSubject[]
 
   @@unique([schoolId, code])
   @@map("subjects")
@@ -533,6 +543,7 @@ model Room {
 
   school      School            @relation(fields: [schoolId], references: [id])
   entries     TimetableEntry[]
+  examSchedules ExamSchedule[]
 
   @@unique([schoolId, code])
   @@index([schoolId])
@@ -709,6 +720,132 @@ model LeaveType {
   @@map("leave_types")
 }
 
+// ---------- Examinations (Phase 7) ----------
+
+enum ExamStatus {
+  DRAFT
+  SCHEDULED
+  ONGOING
+  COMPLETED
+  CANCELLED
+}
+
+enum AssessmentComponentType {
+  THEORY
+  PRACTICAL
+  INTERNAL
+  PROJECT
+  VIVA
+  OTHER
+}
+
+model Exam {
+  id              String      @id @default(uuid()) @db.Uuid
+  schoolId        String      @db.Uuid
+  academicYearId  String      @db.Uuid
+  name            String      // e.g., "Mid Term", "Final Exam", "Unit Test 1"
+  code            String      // e.g., "MT1", "FINAL", "UT1"
+  description     String?
+  startDate       DateTime    @db.Date
+  endDate         DateTime    @db.Date
+  status          ExamStatus  @default(DRAFT)
+  isPublished     Boolean     @default(false)
+  publishAt       DateTime?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  school          School           @relation(fields: [schoolId], references: [id])
+  academicYear    AcademicYear     @relation(fields: [academicYearId], references: [id])
+  subjects        ExamSubject[]
+  schedules       ExamSchedule[]
+  marks           StudentMark[]
+
+  @@unique([schoolId, academicYearId, code])
+  @@index([schoolId, academicYearId])
+  @@map("exams")
+}
+
+model ExamSubject {
+  id              String   @id @default(uuid()) @db.Uuid
+  schoolId        String   @db.Uuid
+  examId          String   @db.Uuid
+  subjectId       String   @db.Uuid
+  classId         String   @db.Uuid
+  maxMarks        Int      @default(100)
+  passMarks       Int      @default(33)
+  weightage       Float    @default(1.0) // For calculating final grades
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  school          School         @relation(fields: [schoolId], references: [id])
+  exam            Exam           @relation(fields: [examId], references: [id], onDelete: Cascade)
+  subject         Subject        @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  class           SchoolClass    @relation(fields: [classId], references: [id])
+  components      ExamAssessmentComponent[]
+  marks           StudentMark[]
+  schedules       ExamSchedule[] @relation("ExamSubjectSchedules")
+
+  @@unique([examId, subjectId, classId])
+  @@index([schoolId, examId])
+  @@index([schoolId, subjectId])
+  @@map("exam_subjects")
+}
+
+model ExamAssessmentComponent {
+  id              String                   @id @default(uuid()) @db.Uuid
+  schoolId        String                   @db.Uuid
+  examSubjectId   String                   @db.Uuid
+  name            String                   // e.g., "Theory", "Practical", "Internal Assessment"
+  code            String                   // e.g., "TH", "PR", "IA"
+  type            AssessmentComponentType  @default(THEORY)
+  maxMarks        Int                      @default(100)
+  passMarks       Int                      @default(33)
+  weightage       Float                    @default(1.0)
+  displayOrder    Int                      @default(0)
+  isActive        Boolean                  @default(true)
+  createdAt       DateTime                 @default(now())
+  updatedAt       DateTime                 @updatedAt
+
+  school          School       @relation(fields: [schoolId], references: [id])
+  examSubject     ExamSubject  @relation(fields: [examSubjectId], references: [id], onDelete: Cascade)
+  marks           StudentMark[]
+
+  @@unique([examSubjectId, code])
+  @@index([schoolId, examSubjectId])
+  @@map("exam_assessment_components")
+}
+
+model ExamSchedule {
+  id              String   @id @default(uuid()) @db.Uuid
+  schoolId        String   @db.Uuid
+  examId          String   @db.Uuid
+  examSubjectId   String   @db.Uuid
+  classId         String   @db.Uuid
+  sectionId       String?  @db.Uuid // null = all sections
+  date            DateTime @db.Date
+  startTime       String   // HH:MM format (24-hour)
+  endTime         String   // HH:MM format (24-hour)
+  roomId          String?  @db.Uuid
+  invigilatorId   String?  @db.Uuid // User ID
+  notes           String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  school          School         @relation(fields: [schoolId], references: [id])
+  exam            Exam           @relation(fields: [examId], references: [id], onDelete: Cascade)
+  examSubject     ExamSubject    @relation("ExamSubjectSchedules", fields: [examSubjectId], references: [id], onDelete: Cascade)
+  class           SchoolClass    @relation(fields: [classId], references: [id])
+  section         Section?       @relation(fields: [sectionId], references: [id])
+  room            Room?          @relation(fields: [roomId], references: [id])
+  invigilator     User?          @relation("ExamInvigilator", fields: [invigilatorId], references: [id])
+
+  @@index([schoolId, examId])
+  @@index([schoolId, examSubjectId])
+  @@index([schoolId, date])
+  @@map("exam_schedules")
+}
+
 model StudentMark {
   id                String   @id @default(uuid()) @db.Uuid
   schoolId          String   @db.Uuid
@@ -724,9 +861,12 @@ model StudentMark {
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
-  school            School     @relation(fields: [schoolId], references: [id])
-  student           Student    @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  academicYear      AcademicYear @relation(fields: [academicYearId], references: [id])
+  school            School                 @relation(fields: [schoolId], references: [id])
+  student           Student                @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  academicYear      AcademicYear           @relation(fields: [academicYearId], references: [id])
+  exam              Exam                   @relation(fields: [examId], references: [id])
+  examSubject       ExamSubject            @relation(fields: [examSubjectId], references: [id])
+  assessmentComp    ExamAssessmentComponent @relation(fields: [assessmentCompId], references: [id])
 
   @@unique([studentId, examSubjectId, assessmentCompId])
   @@index([schoolId, academicYearId, examId])

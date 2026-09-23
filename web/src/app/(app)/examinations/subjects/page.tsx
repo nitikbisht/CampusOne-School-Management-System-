@@ -4,150 +4,171 @@ import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { apiFetch, ApiError, extractItems, extractPagination } from "@/lib/api";
 
+interface ExamSubject {
+  id: string;
+  examId: string;
+  exam?: { id: string; name: string; code: string };
+  subjectId: string;
+  subject?: { id: string; name: string; code: string };
+  classId: string;
+  class?: { id: string; name: string };
+  maxMarks: number;
+  passMarks: number;
+  weightage: number;
+  isActive: boolean;
+  components?: Array<{ id: string; name: string; code: string; maxMarks: number; type: string }>;
+  createdAt: string;
+  updatedAt: string;
+}
+
 interface Exam {
   id: string;
   name: string;
   code: string;
-  description?: string;
-  academicYearId: string;
-  academicYear?: { name: string };
-  startDate: string;
-  endDate: string;
-  status: "DRAFT" | "SCHEDULED" | "ONGOING" | "COMPLETED" | "CANCELLED";
-  isPublished: boolean;
-  createdAt: string;
-  updatedAt: string;
 }
-interface PaginatedResponse<T> {
-  data: {
-    items: T[];
-    total: number;
-    page: number;
-    limit: number;
-    totalPages: number;
-  };
+
+interface Subject {
+  id: string;
+  name: string;
+  code: string;
 }
-export default function ExaminationsPage() {
+
+interface SchoolClass {
+  id: string;
+  name: string;
+}
+
+export default function ExamSubjectsPage() {
   const { user } = useAuth();
-  const [exams, setExams] = useState<Exam[]>([]);
+  const [subjects, setSubjects] = useState<ExamSubject[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [pagination, setPagination] = useState({ page: 1, limit: 20, total: 0, totalPages: 0 });
   const [showModal, setShowModal] = useState(false);
-  const [editingExam, setEditingExam] = useState<Exam | null>(null);
+  const [editingSubject, setEditingSubject] = useState<ExamSubject | null>(null);
   const [formData, setFormData] = useState({
-    name: "",
-    code: "",
-    academicYearId: "",
-    startDate: "",
-    endDate: "",
-    description: "",
-    status: "DRAFT" as "DRAFT" | "SCHEDULED" | "ONGOING" | "COMPLETED" | "CANCELLED",
+    examId: "",
+    subjectId: "",
+    classId: "",
+    maxMarks: 100,
+    passMarks: 33,
+    weightage: 1.0,
+    isActive: true,
   });
   const [submitting, setSubmitting] = useState(false);
-  const [academicYears, setAcademicYears] = useState<{id: string, name: string}[]>([]);
+  const [exams, setExams] = useState<Exam[]>([]);
+  const [subjectsList, setSubjectsList] = useState<Subject[]>([]);
+  const [classes, setClasses] = useState<SchoolClass[]>([]);
 
-  const fetchExams = useCallback(async () => {
+  const fetchSubjects = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await apiFetch<PaginatedResponse<Exam>>(
-        `/exams?page=${pagination.page}&limit=${pagination.limit}`
-      );
-      setExams(extractItems(res));
+      const res = await apiFetch(`/exams/subjects?page=${pagination.page}&limit=${pagination.limit}`);
+      setSubjects(extractItems<ExamSubject>(res));
       const pg = extractPagination(res);
       if (pg) setPagination((prev) => ({ ...prev, total: pg.total, totalPages: pg.totalPages }));
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Failed to fetch examinations");
+      setError(err instanceof ApiError ? err.message : "Failed to fetch exam subjects");
     } finally {
       setLoading(false);
     }
   }, [pagination.page, pagination.limit]);
 
-  const fetchAcademicYears = useCallback(async () => {
+  const fetchExams = useCallback(async () => {
     try {
-      const res = await apiFetch<PaginatedResponse<{id: string, name: string}>>("/academic-years?limit=100");
-      setAcademicYears(extractItems(res));
+      const res = await apiFetch<{ data: { items: Exam[] } }>("/exams?limit=100");
+      setExams(res.data.items);
     } catch (err) {
-      console.error("Failed to fetch academic years", err);
+      console.error("Failed to fetch exams", err);
+    }
+  }, []);
+
+  const fetchSubjectsList = useCallback(async () => {
+    try {
+      const res = await apiFetch<{ data: { items: Subject[] } }>("/subjects?limit=100");
+      setSubjectsList(res.data.items);
+    } catch (err) {
+      console.error("Failed to fetch subjects", err);
+    }
+  }, []);
+
+  const fetchClasses = useCallback(async () => {
+    try {
+      const res = await apiFetch<{ data: { items: SchoolClass[] } }>("/classes?limit=100");
+      setClasses(res.data.items);
+    } catch (err) {
+      console.error("Failed to fetch classes", err);
     }
   }, []);
 
   useEffect(() => {
+    fetchSubjects();
     fetchExams();
-    fetchAcademicYears();
-  }, [fetchExams, fetchAcademicYears]);
+    fetchSubjectsList();
+    fetchClasses();
+  }, [fetchSubjects, fetchExams, fetchSubjectsList, fetchClasses]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
     setError("");
     try {
-      const payload = {
-        ...formData,
-        startDate: new Date(formData.startDate).toISOString().split("T")[0],
-        endDate: new Date(formData.endDate).toISOString().split("T")[0],
-      };
-      if (editingExam) {
-        await apiFetch(`/exams/${editingExam.id}`, {
-          method: "PATCH",
-          body: JSON.stringify(payload),
-        });
+      const payload = { ...formData, maxMarks: Number(formData.maxMarks), passMarks: Number(formData.passMarks), weightage: Number(formData.weightage) };
+      if (editingSubject) {
+        await apiFetch(`/exams/subjects/${editingSubject.id}`, { method: "PATCH", body: JSON.stringify(payload) });
       } else {
-        await apiFetch("/exams", {
-          method: "POST",
-          body: JSON.stringify(payload),
-        });
+        await apiFetch("/exams/subjects", { method: "POST", body: JSON.stringify(payload) });
       }
       setShowModal(false);
-      fetchExams();
+      fetchSubjects();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Failed to save examination");
+      setError(err instanceof ApiError ? err.message : "Failed to save exam subject");
     } finally {
       setSubmitting(false);
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this examination?")) return;
+    if (!confirm("Are you sure you want to delete this exam subject?")) return;
     try {
-      await apiFetch(`/exams/${id}`, { method: "DELETE" });
-      fetchExams();
+      await apiFetch(`/exams/subjects/${id}`, { method: "DELETE" });
+      fetchSubjects();
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Failed to delete examination");
+      setError(err instanceof ApiError ? err.message : "Failed to delete exam subject");
     }
   };
 
   const openCreateModal = () => {
-    setEditingExam(null);
+    setEditingSubject(null);
     setFormData({
-      name: "",
-      code: "",
-      academicYearId: academicYears[0]?.id || "",
-      startDate: "",
-      endDate: "",
-      description: "",
-      status: "DRAFT",
+      examId: exams[0]?.id || "",
+      subjectId: subjectsList[0]?.id || "",
+      classId: classes[0]?.id || "",
+      maxMarks: 100,
+      passMarks: 33,
+      weightage: 1.0,
+      isActive: true,
     });
     setShowModal(true);
   };
 
-  const openEditModal = (exam: Exam) => {
-    setEditingExam(exam);
+  const openEditModal = (subject: ExamSubject) => {
+    setEditingSubject(subject);
     setFormData({
-      name: exam.name,
-      code: exam.code,
-      academicYearId: exam.academicYearId,
-      startDate: exam.startDate.split("T")[0],
-      endDate: exam.endDate.split("T")[0],
-      description: exam.description || "",
-      status: exam.status,
+      examId: subject.examId,
+      subjectId: subject.subjectId,
+      classId: subject.classId,
+      maxMarks: subject.maxMarks,
+      passMarks: subject.passMarks,
+      weightage: subject.weightage,
+      isActive: subject.isActive,
     });
     setShowModal(true);
   };
 
   const closeModal = () => {
     setShowModal(false);
-    setEditingExam(null);
+    setEditingSubject(null);
   };
 
   const canCreate = user && user.permissions.includes("exam:create");
@@ -156,22 +177,12 @@ export default function ExaminationsPage() {
   const canManage = user && user.permissions.includes("exam:manage");
   const canView = user && user.permissions.includes("exam:view");
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "COMPLETED": return "bg-green-100 text-green-800";
-      case "ONGOING": return "bg-blue-100 text-blue-800";
-      case "SCHEDULED": return "bg-yellow-100 text-yellow-800";
-      case "CANCELLED": return "bg-red-100 text-red-800";
-      default: return "bg-gray-100 text-gray-800";
-    }
-  };
-
   if (!canView) {
     return (
       <div className="text-center py-12">
         <div className="text-6xl mb-4">🚫</div>
         <h2 className="text-xl font-semibold text-gray-900">Access Denied</h2>
-        <p className="text-gray-500 mt-2">You don't have permission to view examinations.</p>
+        <p className="text-gray-500 mt-2">You don't have permission to view exam subjects.</p>
       </div>
     );
   }
@@ -180,12 +191,12 @@ export default function ExaminationsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Examinations</h1>
-          <p className="text-gray-500 mt-1">Manage examination schedules and results</p>
+          <h1 className="text-2xl font-bold text-gray-900">Exam Subjects</h1>
+          <p className="text-gray-500 mt-1">Manage subjects assigned to examinations per class</p>
         </div>
         {(canCreate || canManage) && (
           <button onClick={openCreateModal} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
-            + Add Examination
+            + Add Exam Subject
           </button>
         )}
       </div>
@@ -199,12 +210,14 @@ export default function ExaminationsPage() {
           <table className="w-full">
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Code</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Academic Year</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Period</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Exam</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Subject</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Class</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Max Marks</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Pass Marks</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Weightage</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Published</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Components</th>
                 {(canUpdate || canManage || canDelete) && (
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                 )}
@@ -213,46 +226,44 @@ export default function ExaminationsPage() {
             <tbody className="divide-y divide-gray-200">
               {loading ? (
                 <tr>
-                  <td colSpan={7} className="px-6 py-12 text-center text-gray-500">
+                  <td colSpan={9} className="px-6 py-12 text-center text-gray-500">
                     <div className="flex items-center justify-center gap-2">
                       <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
                       Loading...
                     </div>
                   </td>
                 </tr>
-              ) : exams.length === 0 ? (
+              ) : subjects.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-6 py-12 text-center text-gray-500">No examinations found</td>
+                  <td colSpan={9} className="px-6 py-12 text-center text-gray-500">No exam subjects found</td>
                 </tr>
               ) : (
-                exams.map((exam) => (
-                  <tr key={exam.id} className="hover:bg-gray-50">
+                subjects.map((subject) => (
+                  <tr key={subject.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4">
-                      <div className="font-medium text-gray-900">{exam.name}</div>
-                      {exam.description && <div className="text-sm text-gray-500">{exam.description}</div>}
-                      <div className="text-sm text-gray-500">Created {new Date(exam.createdAt).toLocaleDateString()}</div>
-                    </td>
-                    <td className="px-6 py-4 text-gray-900 font-mono">{exam.code}</td>
-                    <td className="px-6 py-4 text-gray-900">{exam.academicYear?.name || exam.academicYearId}</td>
-                    <td className="px-6 py-4 text-gray-900">
-                      {new Date(exam.startDate).toLocaleDateString()} - {new Date(exam.endDate).toLocaleDateString()}
+                      <div className="font-medium text-gray-900">{subject.exam?.name || subject.examId}</div>
+                      <div className="text-sm text-gray-500 font-mono">{subject.exam?.code || ""}</div>
                     </td>
                     <td className="px-6 py-4">
-                      <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(exam.status)}`}>
-                        {exam.status}
+                      <div className="font-medium text-gray-900">{subject.subject?.name || subject.subjectId}</div>
+                      <div className="text-sm text-gray-500 font-mono">{subject.subject?.code || ""}</div>
+                    </td>
+                    <td className="px-6 py-4 text-gray-900">{subject.class?.name || subject.classId}</td>
+                    <td className="px-6 py-4 text-gray-900">{subject.maxMarks}</td>
+                    <td className="px-6 py-4 text-gray-900">{subject.passMarks}</td>
+                    <td className="px-6 py-4 text-gray-900">{subject.weightage}</td>
+                    <td className="px-6 py-4">
+                      <span className={`px-2 py-1 text-xs font-medium rounded-full ${subject.isActive ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"}`}>
+                        {subject.isActive ? "Active" : "Inactive"}
                       </span>
                     </td>
-                    <td className="px-6 py-4">
-                      <span className={`px-2 py-1 text-xs font-medium rounded-full ${exam.isPublished ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"}`}>
-                        {exam.isPublished ? "Yes" : "No"}
-                      </span>
-                    </td>
+                    <td className="px-6 py-4 text-gray-900">{subject.components?.length || 0}</td>
                     {(canUpdate || canManage || canDelete) && (
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-2">
                           {((canUpdate || canManage) && (
                             <button
-                              onClick={() => openEditModal(exam)}
+                              onClick={() => openEditModal(subject)}
                               className="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded transition-colors"
                               title="Edit"
                             >
@@ -263,7 +274,7 @@ export default function ExaminationsPage() {
                           ))}
                           {((canDelete || canManage) && (
                             <button
-                              onClick={() => handleDelete(exam.id)}
+                              onClick={() => handleDelete(subject.id)}
                               className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
                               title="Delete"
                             >
@@ -312,7 +323,7 @@ export default function ExaminationsPage() {
             <div className="fixed inset-0 bg-gray-900/50" onClick={closeModal} />
             <div className="relative bg-white rounded-xl shadow-xl max-w-md w-full p-6">
               <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-semibold text-gray-900">{editingExam ? "Edit Examination" : "Create Examination"}</h2>
+                <h2 className="text-xl font-semibold text-gray-900">{editingSubject ? "Edit Exam Subject" : "Add Exam Subject"}</h2>
                 <button onClick={closeModal} className="text-gray-400 hover:text-gray-600">
                   <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -321,93 +332,96 @@ export default function ExaminationsPage() {
               </div>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Name *</label>
-                  <input
-                    type="text"
-                    required
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="e.g., Mid Term Exam 2026"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Code *</label>
-                  <input
-                    type="text"
-                    required
-                    maxLength={20}
-                    value={formData.code}
-                    onChange={(e) => setFormData({ ...formData, code: e.target.value.toUpperCase() })}
-                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="e.g., MTE, FINAL, UT1"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Academic Year *</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Exam *</label>
                   <select
                     required
-                    value={formData.academicYearId}
-                    onChange={(e) => setFormData({ ...formData, academicYearId: e.target.value })}
+                    value={formData.examId}
+                    onChange={(e) => setFormData({ ...formData, examId: e.target.value })}
                     className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   >
-                    {academicYears.map((ay) => (
-                      <option key={ay.id} value={ay.id}>{ay.name}</option>
+                    {exams.map((exam) => (
+                      <option key={exam.id} value={exam.id}>{exam.name} ({exam.code})</option>
                     ))}
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                  <textarea
-                    value={formData.description}
-                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                    rows={2}
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Subject *</label>
+                  <select
+                    required
+                    value={formData.subjectId}
+                    onChange={(e) => setFormData({ ...formData, subjectId: e.target.value })}
                     className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="Optional description"
-                  />
+                  >
+                    {subjectsList.map((sub) => (
+                      <option key={sub.id} value={sub.id}>{sub.name} ({sub.code})</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Class *</label>
+                  <select
+                    required
+                    value={formData.classId}
+                    onChange={(e) => setFormData({ ...formData, classId: e.target.value })}
+                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    {classes.map((cls) => (
+                      <option key={cls.id} value={cls.id}>{cls.name}</option>
+                    ))}
+                  </select>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Start Date *</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Max Marks *</label>
                     <input
-                      type="date"
+                      type="number"
                       required
-                      value={formData.startDate}
-                      onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
+                      min="1"
+                      value={formData.maxMarks}
+                      onChange={(e) => setFormData({ ...formData, maxMarks: Number(e.target.value) })}
                       className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">End Date *</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Pass Marks *</label>
                     <input
-                      type="date"
+                      type="number"
                       required
-                      value={formData.endDate}
-                      onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
+                      min="0"
+                      value={formData.passMarks}
+                      onChange={(e) => setFormData({ ...formData, passMarks: Number(e.target.value) })}
                       className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     />
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
-                  <select
-                    value={formData.status}
-                    onChange={(e) => setFormData({ ...formData, status: e.target.value as "DRAFT" | "SCHEDULED" | "ONGOING" | "COMPLETED" | "CANCELLED" })}
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Weightage</label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    value={formData.weightage}
+                    onChange={(e) => setFormData({ ...formData, weightage: Number(e.target.value) })}
                     className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  >
-                    <option value="DRAFT">Draft</option>
-                    <option value="SCHEDULED">Scheduled</option>
-                    <option value="ONGOING">Ongoing</option>
-                    <option value="COMPLETED">Completed</option>
-                    <option value="CANCELLED">Cancelled</option>
-                  </select>
+                  />
+                </div>
+                <div>
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={formData.isActive}
+                      onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
+                      className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                    />
+                    <span className="text-sm font-medium text-gray-700">Active</span>
+                  </label>
                 </div>
                 <div className="flex justify-end gap-3 pt-4">
                   <button type="button" onClick={closeModal} className="px-4 py-2 text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50">
                     Cancel
                   </button>
                   <button type="submit" disabled={submitting} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50">
-                    {submitting ? "Saving..." : editingExam ? "Update" : "Create"}
+                    {submitting ? "Saving..." : editingSubject ? "Update" : "Create"}
                   </button>
                 </div>
               </form>

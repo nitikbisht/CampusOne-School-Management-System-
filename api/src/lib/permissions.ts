@@ -91,6 +91,27 @@ export const PERMISSIONS = {
   TEACHER_ASSIGNMENT_DELETE: "teacher_assignment:delete",
   TEACHER_ASSIGNMENT_MANAGE: "teacher_assignment:manage",
 
+  // Attendance
+  ATTENDANCE_VIEW: "attendance:view",
+  ATTENDANCE_CREATE: "attendance:create",
+  ATTENDANCE_UPDATE: "attendance:update",
+  ATTENDANCE_DELETE: "attendance:delete",
+  ATTENDANCE_MANAGE: "attendance:manage",
+
+  // Examinations
+  EXAM_VIEW: "exam:view",
+  EXAM_CREATE: "exam:create",
+  EXAM_UPDATE: "exam:update",
+  EXAM_DELETE: "exam:delete",
+  EXAM_MANAGE: "exam:manage",
+
+  // Student Marks
+  STUDENT_MARK_VIEW: "student_mark:view",
+  STUDENT_MARK_CREATE: "student_mark:create",
+  STUDENT_MARK_UPDATE: "student_mark:update",
+  STUDENT_MARK_DELETE: "student_mark:delete",
+  STUDENT_MARK_MANAGE: "student_mark:manage",
+
   // Auditing
   AUDIT_VIEW: "audit:view",
 } as const;
@@ -111,6 +132,10 @@ const VIEW_ONLY: PermissionKey[] = [
   PERMISSIONS.SUBJECT_VIEW,
   PERMISSIONS.SUBJECT_TYPE_VIEW,
   PERMISSIONS.CLASS_SUBJECT_VIEW,
+  PERMISSIONS.ATTENDANCE_VIEW,
+  PERMISSIONS.EXAM_VIEW,
+  PERMISSIONS.STUDENT_MARK_VIEW,
+  PERMISSIONS.FEE_VIEW,
 ];
 
 const AUTH_BASIC: PermissionKey[] = [

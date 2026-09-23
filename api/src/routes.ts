@@ -15,6 +15,8 @@ import { userRoutes } from "./modules/users/user.routes.js";
 import { roleRoutes } from "./modules/roles/role.routes.js";
 import { eligibilityRoutes } from "./modules/teacher-eligibility/eligibility.routes.js";
 import { assignmentRoutes } from "./modules/teacher-assignments/assignment.routes.js";
+import { examRoutes } from "./modules/examinations/exam.routes.js";
+import { studentMarkRoutes } from "./modules/student-marks/student-mark.routes.js";
 
 export const routes = Router();
 
@@ -34,3 +36,5 @@ routes.use("/users", userRoutes);
 routes.use("/roles", roleRoutes);
 routes.use("/teacher-eligibilities", eligibilityRoutes);
 routes.use("/teacher-assignments", assignmentRoutes);
+routes.use("/exams", examRoutes);
+routes.use("/student-marks", studentMarkRoutes);
