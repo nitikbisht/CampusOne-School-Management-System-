@@ -73,6 +73,15 @@ export const NAVIGATION_GROUPS: NavGroup[] = [
       { name: "Fees", href: "/fees", icon: "💰", permission: "fee:view" },
     ],
   },
+  {
+    label: "Finance",
+    items: [
+      { name: "Fee Types", href: "/fee-types", icon: "🏷️", permission: "fee_type:view" },
+      { name: "Student Fees", href: "/student-fees", icon: "👨‍🎓", permission: "student_fee:view" },
+      { name: "Payments", href: "/payments", icon: "💳", permission: "payment:view" },
+      { name: "Receipts", href: "/receipts", icon: "🧾", permission: "receipt:view" },
+    ],
+  },
 ];
 
 // Flatten all nav items for easy lookup

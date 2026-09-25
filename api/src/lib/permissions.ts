@@ -64,6 +64,33 @@ export const PERMISSIONS = {
   FEE_DELETE: "fee:delete",
   FEE_MANAGE: "fee:manage",
 
+  // Fee Type
+  FEE_TYPE_VIEW: "fee_type:view",
+  FEE_TYPE_CREATE: "fee_type:create",
+  FEE_TYPE_UPDATE: "fee_type:update",
+  FEE_TYPE_DELETE: "fee_type:delete",
+  FEE_TYPE_MANAGE: "fee_type:manage",
+
+  // Student Fee
+  STUDENT_FEE_VIEW: "student_fee:view",
+  STUDENT_FEE_CREATE: "student_fee:create",
+  STUDENT_FEE_UPDATE: "student_fee:update",
+  STUDENT_FEE_DELETE: "student_fee:delete",
+  STUDENT_FEE_MANAGE: "student_fee:manage",
+  STUDENT_FEE_BULK_ASSIGN: "student_fee:bulk_assign",
+
+  // Payment
+  PAYMENT_VIEW: "payment:view",
+  PAYMENT_CREATE: "payment:create",
+  PAYMENT_UPDATE: "payment:update",
+  PAYMENT_DELETE: "payment:delete",
+  PAYMENT_MANAGE: "payment:manage",
+
+  // Receipt
+  RECEIPT_VIEW: "receipt:view",
+  RECEIPT_CREATE: "receipt:create",
+  RECEIPT_DOWNLOAD: "receipt:download",
+
   // Users & RBAC
   USER_VIEW: "user:view",
   USER_CREATE: "user:create",
@@ -136,6 +163,10 @@ const VIEW_ONLY: PermissionKey[] = [
   PERMISSIONS.EXAM_VIEW,
   PERMISSIONS.STUDENT_MARK_VIEW,
   PERMISSIONS.FEE_VIEW,
+  PERMISSIONS.FEE_TYPE_VIEW,
+  PERMISSIONS.STUDENT_FEE_VIEW,
+  PERMISSIONS.PAYMENT_VIEW,
+  PERMISSIONS.RECEIPT_VIEW,
 ];
 
 const AUTH_BASIC: PermissionKey[] = [
@@ -168,6 +199,28 @@ const MANAGE_ACADEMIC: PermissionKey[] = [
   PERMISSIONS.CLASS_SUBJECT_UPDATE,
   PERMISSIONS.CLASS_SUBJECT_DELETE,
   PERMISSIONS.CLASS_SUBJECT_MANAGE,
+];
+
+const MANAGE_FEES: PermissionKey[] = [
+  PERMISSIONS.FEE_CREATE,
+  PERMISSIONS.FEE_UPDATE,
+  PERMISSIONS.FEE_DELETE,
+  PERMISSIONS.FEE_MANAGE,
+  PERMISSIONS.FEE_TYPE_CREATE,
+  PERMISSIONS.FEE_TYPE_UPDATE,
+  PERMISSIONS.FEE_TYPE_DELETE,
+  PERMISSIONS.FEE_TYPE_MANAGE,
+  PERMISSIONS.STUDENT_FEE_CREATE,
+  PERMISSIONS.STUDENT_FEE_UPDATE,
+  PERMISSIONS.STUDENT_FEE_DELETE,
+  PERMISSIONS.STUDENT_FEE_MANAGE,
+  PERMISSIONS.STUDENT_FEE_BULK_ASSIGN,
+  PERMISSIONS.PAYMENT_CREATE,
+  PERMISSIONS.PAYMENT_UPDATE,
+  PERMISSIONS.PAYMENT_DELETE,
+  PERMISSIONS.PAYMENT_MANAGE,
+  PERMISSIONS.RECEIPT_CREATE,
+  PERMISSIONS.RECEIPT_DOWNLOAD,
 ];
 
 /** Starting point only: the school can change these later through role management. */

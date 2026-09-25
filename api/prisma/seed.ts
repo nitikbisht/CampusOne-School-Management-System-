@@ -379,6 +379,288 @@ async function main() {
     }
   }
 
+  // Fee Types
+  const feeTypeNames = [
+    "Tuition Fee",
+    "Transport Fee",
+    "Examination Fee",
+    "Activity Fee",
+    "Admission Fee",
+    "Miscellaneous Fee",
+    "Library Fee",
+    "Lab Fee",
+  ];
+
+  const feeTypeIdByName = new Map<string, string>();
+  for (const name of feeTypeNames) {
+    const feeType = await prisma.feeType.upsert({
+      where: { schoolId_name: { schoolId, name } },
+      update: {},
+      create: { schoolId, name, description: `${name} for students`, isActive: true },
+    });
+    feeTypeIdByName.set(name, feeType.id);
+  }
+
+  // Fee Structures (linking fee types)
+  const feeIdByName = new Map<string, string>();
+  const feeData = [
+    { name: "Tuition Fee - Class 1-5", feeType: "Tuition Fee", amount: 25000, frequency: "QUARTERLY", class: "Class 3" },
+    { name: "Tuition Fee - Class 6-10", feeType: "Tuition Fee", amount: 30000, frequency: "QUARTERLY", class: "Class 8" },
+    { name: "Transport Fee - Bus", feeType: "Transport Fee", amount: 3000, frequency: "MONTHLY", class: "Class 3" },
+    { name: "Transport Fee - Van", feeType: "Transport Fee", amount: 2500, frequency: "MONTHLY", class: "Class 8" },
+    { name: "Examination Fee", feeType: "Examination Fee", amount: 1000, frequency: "SEMESTER", class: "Class 3" },
+    { name: "Activity Fee", feeType: "Activity Fee", amount: 2000, frequency: "ANNUAL", class: "Class 3" },
+    { name: "Library Fee", feeType: "Library Fee", amount: 500, frequency: "ANNUAL", class: "Class 3" },
+    { name: "Lab Fee", feeType: "Lab Fee", amount: 1500, frequency: "ANNUAL", class: "Class 8" },
+  ];
+
+  for (const f of feeData) {
+    const classId = classIdByName.get(f.class);
+    const feeTypeId = feeTypeIdByName.get(f.feeType);
+    if (!classId || !feeTypeId) continue;
+
+    const existingFee = await prisma.fee.findFirst({
+      where: { schoolId, academicYearId: year.id, name: f.name, classId },
+    });
+    let fee;
+    if (existingFee) {
+      fee = await prisma.fee.update({
+        where: { id: existingFee.id },
+        data: {
+          name: f.name,
+          amount: f.amount,
+          frequency: f.frequency,
+          feeTypeId,
+          classId,
+          dueDate: new Date("2026-05-15"),
+          isActive: true,
+        },
+      });
+    } else {
+      fee = await prisma.fee.create({
+        data: {
+          schoolId,
+          academicYearId: year.id,
+          name: f.name,
+          amount: f.amount,
+          frequency: f.frequency,
+          feeTypeId,
+          classId,
+          dueDate: new Date("2026-05-15"),
+          isActive: true,
+        },
+      });
+    }
+    feeIdByName.set(f.name, fee.id);
+  }
+
+  // Student Fees - Assign fees to all enrolled students
+  const enrolledStudents = await prisma.studentEnrollment.findMany({
+    where: { schoolId, academicYearId: year.id, isActive: true },
+    take: 20,
+    select: { studentId: true, classId: true },
+  });
+
+  const studentFeeIdByStudentAndFee = new Map<string, string>();
+
+  for (const enrollment of enrolledStudents) {
+    // Find tuition fee for this student's class (if any)
+    const tuitionFee = await prisma.fee.findFirst({
+      where: {
+        schoolId,
+        academicYearId: year.id,
+        classId: enrollment.classId,
+        name: { contains: "Tuition" },
+        isActive: true,
+      },
+    });
+    if (tuitionFee) {
+      const studentFee = await prisma.studentFee.upsert({
+        where: { studentId_feeId_academicYearId: { studentId: enrollment.studentId, feeId: tuitionFee.id, academicYearId: year.id } },
+        update: {},
+        create: {
+          schoolId,
+          studentId: enrollment.studentId,
+          feeId: tuitionFee.id,
+          academicYearId: year.id,
+          discountAmount: 0,
+          totalAmount: tuitionFee.amount,
+          paidAmount: 0,
+          balanceAmount: tuitionFee.amount,
+          dueDate: new Date("2026-05-15"),
+          status: "PENDING",
+        },
+      });
+      studentFeeIdByStudentAndFee.set(`${enrollment.studentId}-${tuitionFee.id}`, studentFee.id);
+    }
+
+    // Assign transport fee for some students (if exists for their class)
+    const transportFee = await prisma.fee.findFirst({
+      where: {
+        schoolId,
+        academicYearId: year.id,
+        classId: enrollment.classId,
+        name: { contains: "Transport" },
+        isActive: true,
+      },
+    });
+    if (transportFee && Math.random() > 0.5) {
+      const studentFee = await prisma.studentFee.upsert({
+        where: { studentId_feeId_academicYearId: { studentId: enrollment.studentId, feeId: transportFee.id, academicYearId: year.id } },
+        update: {},
+        create: {
+          schoolId,
+          studentId: enrollment.studentId,
+          feeId: transportFee.id,
+          academicYearId: year.id,
+          discountAmount: 0,
+          totalAmount: transportFee.amount,
+          paidAmount: 0,
+          balanceAmount: transportFee.amount,
+          dueDate: new Date("2026-05-15"),
+          status: "PENDING",
+        },
+      });
+      studentFeeIdByStudentAndFee.set(`${enrollment.studentId}-${transportFee.id}`, studentFee.id);
+    }
+
+    // Assign examination fee (if exists for their class)
+    const examFee = await prisma.fee.findFirst({
+      where: {
+        schoolId,
+        academicYearId: year.id,
+        classId: enrollment.classId,
+        name: { contains: "Examination" },
+        isActive: true,
+      },
+    });
+    if (examFee) {
+      const studentFee = await prisma.studentFee.upsert({
+        where: { studentId_feeId_academicYearId: { studentId: enrollment.studentId, feeId: examFee.id, academicYearId: year.id } },
+        update: {},
+        create: {
+          schoolId,
+          studentId: enrollment.studentId,
+          feeId: examFee.id,
+          academicYearId: year.id,
+          discountAmount: 0,
+          totalAmount: examFee.amount,
+          paidAmount: 0,
+          balanceAmount: examFee.amount,
+          dueDate: new Date("2026-09-01"),
+          status: "PENDING",
+        },
+      });
+      studentFeeIdByStudentAndFee.set(`${enrollment.studentId}-${examFee.id}`, studentFee.id);
+    }
+  }
+
+  // Payments - Create some sample payments for the first few students
+  const adminUser = await prisma.user.findFirst({ where: { schoolId, email: email } });
+  const collectorId = adminUser?.id;
+
+  if (collectorId) {
+    let paymentCount = 0;
+    for (const [key, studentFeeId] of studentFeeIdByStudentAndFee.entries()) {
+      if (paymentCount >= 10) break; // Limit demo payments
+
+      const studentFee = await prisma.studentFee.findUnique({ where: { id: studentFeeId }, include: { fee: true } });
+      if (!studentFee) continue;
+
+      // Pay 50% of the fee
+      const paymentAmount = Number(studentFee.totalAmount) * 0.5;
+
+      const payment = await prisma.payment.create({
+        data: {
+          schoolId,
+          studentId: studentFee.studentId,
+          studentFeeId: studentFee.id,
+          academicYearId: year.id,
+          amount: paymentAmount,
+          paymentDate: new Date("2026-04-20"),
+          paymentMode: "UPI",
+          transactionRef: `UPI${Date.now()}${paymentCount}`,
+          receiptNumber: `RCPT-2026-${String(paymentCount + 1).padStart(6, "0")}`,
+          notes: "Partial payment",
+          status: "COMPLETED",
+          collectedById: collectorId,
+        },
+      });
+
+      // Update student fee balance
+      await prisma.studentFee.update({
+        where: { id: studentFeeId },
+        data: {
+          paidAmount: paymentAmount,
+          balanceAmount: Number(studentFee.totalAmount) - paymentAmount,
+          status: "PARTIAL",
+        },
+      });
+
+      // Create receipt
+      await prisma.receipt.create({
+        data: {
+          schoolId,
+          paymentId: payment.id,
+          studentId: studentFee.studentId,
+          academicYearId: year.id,
+          receiptNumber: payment.receiptNumber!,
+          receiptDate: new Date("2026-04-20"),
+          amount: paymentAmount,
+          generatedById: collectorId,
+        },
+      });
+
+      paymentCount++;
+    }
+
+    // Create a couple of full payments
+    const fullPaymentStudents = Array.from(studentFeeIdByStudentAndFee.entries()).slice(0, 2);
+    for (const [key, studentFeeId] of fullPaymentStudents) {
+      const studentFee = await prisma.studentFee.findUnique({ where: { id: studentFeeId }, include: { fee: true } });
+      if (!studentFee) continue;
+
+      const payment = await prisma.payment.create({
+        data: {
+          schoolId,
+          studentId: studentFee.studentId,
+          studentFeeId: studentFee.id,
+          academicYearId: year.id,
+          amount: Number(studentFee.totalAmount),
+          paymentDate: new Date("2026-04-25"),
+          paymentMode: "CARD",
+          transactionRef: `CARD${Date.now()}`,
+          receiptNumber: `RCPT-2026-${String(100 + paymentCount).padStart(6, "0")}`,
+          notes: "Full payment",
+          status: "COMPLETED",
+          collectedById: collectorId,
+        },
+      });
+
+      await prisma.studentFee.update({
+        where: { id: studentFeeId },
+        data: {
+          paidAmount: Number(studentFee.totalAmount),
+          balanceAmount: 0,
+          status: "PAID",
+        },
+      });
+
+      await prisma.receipt.create({
+        data: {
+          schoolId,
+          paymentId: payment.id,
+          studentId: studentFee.studentId,
+          academicYearId: year.id,
+          receiptNumber: payment.receiptNumber!,
+          receiptDate: new Date("2026-04-25"),
+          amount: Number(studentFee.totalAmount),
+          generatedById: collectorId,
+        },
+      });
+    }
+  }
+
   console.log(`Seed complete. Demo login (once auth exists): ${email}`);
 }
 

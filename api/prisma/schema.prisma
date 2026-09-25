@@ -53,6 +53,10 @@ model School {
   timetables         Timetable[]
   timetableEntries   TimetableEntry[]
   fees               Fee[]
+  feeTypes           FeeType[]
+  studentFees        StudentFee[]
+  payments           Payment[]
+  receipts           Receipt[]
   teacherEligibilities TeacherEligibility[]
   teacherAssignments TeacherAssignment[]
   exams              Exam[]
@@ -86,6 +90,8 @@ model User {
   teacherEligibilities      TeacherEligibility[]   @relation("TeacherEligibilityTeacher")
   teacherAssignments        TeacherAssignment[]    @relation("TeacherAssignmentTeacher")
   invigilatorSchedules      ExamSchedule[]         @relation("ExamInvigilator")
+  collectedPayments         Payment[]              @relation("PaymentCollectedBy")
+  generatedReceipts         Receipt[]              @relation("ReceiptGeneratedBy")
 
   @@unique([schoolId, email])
   @@index([schoolId])
@@ -138,6 +144,9 @@ model Student {
   marks        StudentMark[]
   assignments  AssignmentSubmission[]
   certificates Certificate[]
+  studentFees  StudentFee[]
+  payments     Payment[]
+  receipts     Receipt[]
 
   @@unique([schoolId, admissionNo])
   @@index([schoolId])
@@ -344,6 +353,9 @@ model AcademicYear {
   timetables          Timetable[]
   timetableEntries    TimetableEntry[]
   fees                Fee[]
+  studentFees         StudentFee[]
+  payments            Payment[]
+  receipts            Receipt[]
   teacherAssignments  TeacherAssignment[]
   exams               Exam[]
 
@@ -458,6 +470,24 @@ model ClassSubject {
   @@map("class_subjects")
 }
 
+// Fee type master - categories like Tuition, Transport, Activity, etc.
+model FeeType {
+  id          String   @id @default(uuid()) @db.Uuid
+  schoolId    String   @db.Uuid
+  name        String
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  school      School   @relation(fields: [schoolId], references: [id])
+  fees        Fee[]
+
+  @@unique([schoolId, name])
+  @@index([schoolId])
+  @@map("fee_types")
+}
+
 // Fee structure for the school
 enum FeeFrequency {
   ONE_TIME
@@ -470,6 +500,7 @@ enum FeeFrequency {
 model Fee {
   id             String       @id @default(uuid()) @db.Uuid
   schoolId       String       @db.Uuid
+  feeTypeId      String?      @db.Uuid
   name           String
   description    String?
   amount         Decimal      @db.Decimal(10, 2)
@@ -482,12 +513,134 @@ model Fee {
   updatedAt      DateTime     @updatedAt
 
   school         School       @relation(fields: [schoolId], references: [id])
+  feeType        FeeType?     @relation(fields: [feeTypeId], references: [id])
   academicYear   AcademicYear @relation(fields: [academicYearId], references: [id])
   class          SchoolClass? @relation(fields: [classId], references: [id])
+  studentFees    StudentFee[]
 
   @@index([schoolId])
   @@index([schoolId, academicYearId])
   @@map("fees")
+}
+
+// Fee status enum
+enum FeeStatus {
+  PENDING
+  PARTIAL
+  PAID
+  OVERDUE
+  WAIVED
+  CANCELLED
+}
+
+// StudentFee - fee assigned to a specific student (transactional)
+model StudentFee {
+  id             String       @id @default(uuid()) @db.Uuid
+  schoolId       String       @db.Uuid
+  studentId      String       @db.Uuid
+  feeId          String       @db.Uuid
+  academicYearId String       @db.Uuid
+  discountAmount Decimal?     @db.Decimal(10, 2)
+  discountReason String?
+  totalAmount    Decimal      @db.Decimal(10, 2)
+  paidAmount     Decimal      @db.Decimal(10, 2) @default(0)
+  balanceAmount  Decimal      @db.Decimal(10, 2)
+  dueDate        DateTime?    @db.Date
+  status         FeeStatus    @default(PENDING)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  school         School       @relation(fields: [schoolId], references: [id])
+  student        Student      @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  fee            Fee          @relation(fields: [feeId], references: [id])
+  academicYear   AcademicYear @relation(fields: [academicYearId], references: [id])
+  payments       Payment[]
+
+  @@unique([studentId, feeId, academicYearId])
+  @@index([schoolId, academicYearId])
+  @@index([schoolId, studentId])
+  @@index([schoolId, status])
+  @@map("student_fees")
+}
+
+// Payment mode enum
+enum PaymentMode {
+  CASH
+  CARD
+  UPI
+  NET_BANKING
+  CHEQUE
+  DD
+  ONLINE
+  OTHER
+}
+
+// Payment status enum
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+  CANCELLED
+}
+
+// Payment - records of payments made
+model Payment {
+  id             String       @id @default(uuid()) @db.Uuid
+  schoolId       String       @db.Uuid
+  studentId      String       @db.Uuid
+  studentFeeId   String       @db.Uuid
+  academicYearId String       @db.Uuid
+  amount         Decimal      @db.Decimal(10, 2)
+  paymentDate    DateTime     @db.Date
+  paymentMode    PaymentMode
+  transactionRef String?
+  receiptNumber  String?      @unique
+  notes          String?
+  status         PaymentStatus @default(COMPLETED)
+  collectedById  String       @db.Uuid
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  school         School       @relation(fields: [schoolId], references: [id])
+  student        Student      @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  studentFee     StudentFee   @relation(fields: [studentFeeId], references: [id], onDelete: Cascade)
+  academicYear   AcademicYear @relation(fields: [academicYearId], references: [id])
+  collectedBy    User         @relation("PaymentCollectedBy", fields: [collectedById], references: [id])
+  receipt        Receipt?
+
+  @@index([schoolId, academicYearId])
+  @@index([schoolId, studentId])
+  @@index([schoolId, studentFeeId])
+  @@index([schoolId, paymentDate])
+  @@index([schoolId, receiptNumber])
+  @@map("payments")
+}
+
+// Receipt - generated receipt for payments
+model Receipt {
+  id             String   @id @default(uuid()) @db.Uuid
+  schoolId       String   @db.Uuid
+  paymentId      String   @db.Uuid @unique
+  studentId      String   @db.Uuid
+  academicYearId String   @db.Uuid
+  receiptNumber  String   @unique
+  receiptDate    DateTime @db.Date
+  amount         Decimal  @db.Decimal(10, 2)
+  generatedById  String   @db.Uuid
+  pdfUrl         String?
+  createdAt      DateTime @default(now())
+
+  school         School   @relation(fields: [schoolId], references: [id])
+  payment        Payment  @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  student        Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  academicYear   AcademicYear @relation(fields: [academicYearId], references: [id])
+  generatedBy    User     @relation("ReceiptGeneratedBy", fields: [generatedById], references: [id])
+
+  @@index([schoolId, academicYearId])
+  @@index([schoolId, studentId])
+  @@index([schoolId, receiptNumber])
+  @@map("receipts")
 }
 
 // ---------- Timetable (Phase 7) ----------

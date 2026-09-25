@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/lib/auth-context";
-import { apiFetch, ApiError } from "@/lib/api";
+import { apiFetch, ApiError, extractItems, extractPagination } from "@/lib/api";
 
 interface Fee {
   id: string;
@@ -14,6 +14,8 @@ interface Fee {
   academicYear?: { name: string };
   classId?: string;
   class?: { name: string; displayName: string };
+  feeTypeId?: string;
+  feeType?: { id: string; name: string };
   dueDate?: string;
   isActive: boolean;
   createdAt: string;
@@ -43,6 +45,7 @@ export default function FeesPage() {
   frequency: "ONE_TIME" | "MONTHLY" | "QUARTERLY" | "SEMESTER" | "ANNUAL";
   academicYearId: string;
   classId?: string;
+  feeTypeId?: string;
   dueDate?: string;
   isActive: boolean;
 }
@@ -54,12 +57,14 @@ export default function FeesPage() {
     frequency: "ONE_TIME",
     academicYearId: "",
     classId: "",
+    feeTypeId: "",
     dueDate: "",
     isActive: true,
   });
   const [submitting, setSubmitting] = useState(false);
   const [academicYears, setAcademicYears] = useState<{id: string, name: string}[]>([]);
   const [classes, setClasses] = useState<{id: string, name: string, displayName: string}[]>([]);
+  const [feeTypes, setFeeTypes] = useState<{id: string, name: string}[]>([]);
   const fetchFees = async () => {
     try {
       setLoading(true);
@@ -90,10 +95,19 @@ export default function FeesPage() {
       console.error("Failed to fetch classes", err);
     }
   };
+  const fetchFeeTypes = async () => {
+    try {
+      const res = await apiFetch<PaginatedResponse<{id: string, name: string}>>("/fee-types?limit=100");
+      setFeeTypes(res.data.items);
+    } catch (err) {
+      console.error("Failed to fetch fee types", err);
+    }
+  };
   useEffect(() => {
     fetchFees();
     fetchAcademicYears();
     fetchClasses();
+    fetchFeeTypes();
   }, [pagination.page]);
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -103,6 +117,7 @@ export default function FeesPage() {
       const payload = { ...formData };
       if (!payload.description) delete payload.description;
       if (!payload.classId) delete payload.classId;
+      if (!payload.feeTypeId) delete payload.feeTypeId;
       if (!payload.dueDate) delete payload.dueDate;
       if (editingFee) {
         await apiFetch(`/fees/${editingFee.id}`, {
@@ -141,6 +156,7 @@ export default function FeesPage() {
       frequency: "ONE_TIME",
       academicYearId: academicYears[0]?.id || "",
       classId: "",
+      feeTypeId: "",
       dueDate: "",
       isActive: true,
     });
@@ -155,6 +171,7 @@ export default function FeesPage() {
       frequency: fee.frequency,
       academicYearId: fee.academicYearId,
       classId: fee.classId || "",
+      feeTypeId: fee.feeTypeId || "",
       dueDate: fee.dueDate ? fee.dueDate.split("T")[0] : "",
       isActive: fee.isActive,
     });
@@ -202,6 +219,7 @@ export default function FeesPage() {
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fee Type</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Frequency</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Academic Year</th>
@@ -216,7 +234,7 @@ export default function FeesPage() {
             <tbody className="divide-y divide-gray-200">
               {loading ? (
                 <tr>
-                  <td colSpan={8} className="px-6 py-12 text-center text-gray-500">
+                  <td colSpan={9} className="px-6 py-12 text-center text-gray-500">
                     <div className="flex items-center justify-center gap-2">
                       <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
                       Loading...
@@ -225,7 +243,7 @@ export default function FeesPage() {
                 </tr>
               ) : fees.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="px-6 py-12 text-center text-gray-500">No fees found</td>
+                  <td colSpan={9} className="px-6 py-12 text-center text-gray-500">No fees found</td>
                 </tr>
               ) : (
                 fees.map((fee) => (
@@ -234,6 +252,7 @@ export default function FeesPage() {
                       <div className="font-medium text-gray-900">{fee.name}</div>
                       <div className="text-sm text-gray-500">{fee.description || "—"}</div>
                     </td>
+                    <td className="px-6 py-4 text-gray-900">{fee.feeType?.name || "—"}</td>
                     <td className="px-6 py-4 text-gray-900 font-mono">₹{fee.amount.toLocaleString()}</td>
                     <td className="px-6 py-4 text-gray-900">{fee.frequency.replace("_", " ")}</td>
                     <td className="px-6 py-4 text-gray-900">{fee.academicYear?.name || fee.academicYearId}</td>
@@ -337,6 +356,19 @@ export default function FeesPage() {
                     rows={2}
                     placeholder="Optional description"
                   />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Fee Type</label>
+                  <select
+                    value={formData.feeTypeId}
+                    onChange={(e) => setFormData({ ...formData, feeTypeId: e.target.value })}
+                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <option value="">Select Fee Type (Optional)</option>
+                    {feeTypes.map((ft) => (
+                      <option key={ft.id} value={ft.id}>{ft.name}</option>
+                    ))}
+                  </select>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
