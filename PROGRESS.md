@@ -1,7 +1,7 @@
 # CampusOne School Management System - Progress Tracker
 
-> **Last Updated:** 2026-09-23  
-> **Current Phase:** Week 6 Complete - Enrollment & Teacher Assignment (Teacher Eligibility, Teacher Assignment, Student Enrollment)  
+> **Last Updated:** 2026-10-07  
+> **Current Phase:** Week 6 Complete - Enrollment & Teacher Assignment; **Developer Control Panel Complete**  
 > **Next Phase:** Week 7 - Examinations
 
 ---
@@ -18,6 +18,7 @@
 | 4 | People Management | ✅ **COMPLETE** | 2026-09-20 | Students, Parents, Student Enrollment - all CRUD APIs + Parent-Student links |
 | 5 | User & Role Management | ✅ **COMPLETE** | 2026-09-22 | Users, Roles, Permissions - full CRUD APIs + Frontend pages |
 | 6 | Enrollment & Teacher Assignment | ✅ **COMPLETE** | 2026-09-23 | Teacher Eligibility, Teacher Assignment, Student Enrollment (existing) - full CRUD APIs + Frontend pages |
+| **Developer Control Panel** | **✅ COMPLETE** | **2026-10-07** | **School Onboarding, Developer Users, Role Management, Master Config, Integration Config, System/Feature Flags, Dashboard, Audit Logs** |
 | 7 | Examinations | ⏳ **PENDING** | - | Exam scheduling, marks entry, report cards |
 | 8 | Fees & Finance | ⏳ **PENDING** | - | Fee structures, invoices, payments, receipts |
 | 9 | Communication | ⏳ **PENDING** | - | Notifications, announcements, messaging |
@@ -66,6 +67,30 @@
 | Frontend Teacher Assignments page (list, create, edit, delete, eligibility warnings, dynamic section filtering) | ✅ | ✅ |
 | API endpoints tested manually | ✅ | ✅ |
 | Web proxy working for all new endpoints | ✅ | ✅ |
+
+### Developer Control Panel Deliverables Checklist
+
+| Deliverable | Status | Verified |
+|-------------|--------|----------|
+| School Onboarding module (check uniqueness, onboard school+user, update, status toggle, deactivate) | ✅ | ✅ |
+| School Onboarding 2-step frontend (school profile → initial user with validation) | ✅ | ✅ |
+| Developer Users module (cross-school user management with CRUD, bulk actions, password reset) | ✅ | ✅ |
+| Developer Users frontend (list, create, edit, delete, activate/deactivate, move between schools) | ✅ | ✅ |
+| Role Management module (CRUD + permission sync, system role protection, audit) | ✅ | ✅ |
+| Role Management frontend (list with filters, create/edit/delete, permission matrix modal) | ✅ | ✅ |
+| Master Configuration module (global config CRUD + school overrides) | ✅ | ✅ |
+| Integration Configuration module (per-school API credentials, test connections) | ✅ | ✅ |
+| System module (health check, feature flags CRUD, API configs) | ✅ | ✅ |
+| System frontend (health, feature flags with toggles) | ✅ | ✅ |
+| Developer Dashboard (system-wide metrics: schools, students, fees, users) | ✅ | ✅ |
+| Audit Logs (paginated, filterable by action/entity/school/date) | ✅ | ✅ |
+| School Details page (profile, settings, feature flags, users, stats, danger zone) | ✅ | ✅ |
+| Route ordering fixed (schools list before :id to avoid conflicts) | ✅ | ✅ |
+| Individual permission middleware on all role endpoints | ✅ | ✅ |
+| Frontend uniqueness check fixed (skip email at step 1) | ✅ | ✅ |
+| Backend createSchool uses repository (no duplicate transaction logic) | ✅ | ✅ |
+| React hooks linting fixed (useEffect before early return) | ✅ | ✅ |
+| TypeScript compilation passes for all modified files | ✅ | ✅ |
 
 ### Week 3 Deliverables Checklist
 
@@ -155,30 +180,86 @@ api/src/modules/teacher-assignments/
 | `api/prisma/seed.ts` | Added 3 demo teachers (Teacher role), 7 eligibility records, 8 assignment records |
 | `api/prisma/migrations/20260922192422_add_teacher_eligibility_assignment/` | Migration for new TeacherEligibility and TeacherAssignment tables |
 
+#### Developer Control Panel (Week 6-7) - New Files
 ```
-api/src/modules/students/
-├── student.schemas.ts       # Zod validation schemas
-├── student.repository.ts    # Prisma data access layer
-├── student.service.ts       # Business logic
-├── student.controller.ts    # HTTP handlers
-└── student.routes.ts        # Express routes with middleware
+api/src/modules/developer/
+├── developer.schemas.ts        # Zod validation schemas (schools, roles, dashboard, logs)
+├── developer.repository.ts     # Prisma data access (schools, roles, dashboard, logs)
+├── developer.service.ts        # Business logic (dashboard, logs, roles)
+├── developer.controller.ts     # HTTP handlers
+└── developer.routes.ts         # Express routes with DEVELOPER_ACCESS + individual perms
 
-api/src/modules/parents/
-├── parent.schemas.ts
-├── parent.repository.ts
-├── parent.service.ts
-├── parent.controller.ts
-└── parent.routes.ts
+api/src/modules/school-onboarding/
+├── school-onboarding.schemas.ts    # Zod validation schemas
+├── school-onboarding.repository.ts # Prisma data access (schools, uniqueness)
+├── school-onboarding.service.ts    # Business logic (onboard with tx, defaults)
+├── school-onboarding.controller.ts # HTTP handlers
+└── school-onboarding.routes.ts     # Express routes
 
-api/src/modules/student-enrollments/
-├── enrollment.schemas.ts
-├── enrollment.repository.ts
-├── enrollment.service.ts
-├── enrollment.controller.ts
-└── enrollment.routes.ts
+api/src/modules/developer-users/
+├── developer-users.schemas.ts      # Zod validation schemas
+├── developer-users.repository.ts   # Prisma data access (cross-school users)
+├── developer-users.service.ts      # Business logic (CRUD, bulk, reset password)
+├── developer-users.controller.ts   # HTTP handlers
+└── developer-users.routes.ts       # Express routes
+
+api/src/modules/master-config/
+├── master-config.schemas.ts        # Zod validation schemas
+├── master-config.repository.ts     # Prisma data access
+├── master-config.service.ts        # Business logic (global + school overrides)
+├── master-config.controller.ts     # HTTP handlers
+└── master-config.routes.ts         # Express routes
+
+api/src/modules/integration-config/
+├── integration-config.schemas.ts   # Zod validation schemas
+├── integration-config.repository.ts # Prisma data access
+├── integration-config.service.ts   # Business logic (config + test connections)
+├── integration-config.controller.ts # HTTP handlers
+└── integration-config.routes.ts    # Express routes
+
+api/src/modules/system/
+├── system.controller.ts       # HTTP handlers (health, feature flags, api configs)
+├── system.routes.ts           # Express routes
+└── system.repository.ts       # Prisma data access
+
+api/prisma/migrations/
+├── 20260925220904_add_developer_control_panel/
+└── 20260925221930_add_school_contact_fields/
 ```
 
-#### Modified Files (Week 4)
+#### Modified Files (Developer Control Panel)
+| File | Changes |
+|------|---------|
+| `api/src/lib/permissions.ts` | Added DEVELOPER_ACCESS, MASTER_CONFIG_*, INTEGRATION_CONFIG_*, FEATURE_FLAG_*, SYSTEM_*, AUDIT_LOG_VIEW; updated DEFAULT_ROLE_PERMISSIONS for Developer |
+| `api/src/routes.ts` | Registered developer, school-onboarding, developer-users, master-config, integration-config, system routes |
+| `api/prisma/schema.prisma` | Added SchoolContact fields, FeatureFlag, ApiConfig, MasterConfig, MasterConfigOverride models |
+| `api/prisma/seed.ts` | Added Developer role permissions, feature flags, master config seed data |
+
+#### Frontend (Developer Control Panel) - New Files
+```
+web/src/app/(app)/developer/
+├── page.tsx                          # Developer Dashboard
+├── schools/
+│   ├── page.tsx                      # Schools list with actions
+│   ├── new/
+│   │   └── page.tsx                  # 2-step School Onboarding
+│   └── [schoolId]/
+│       └── page.tsx                  # School Details (profile, settings, users, stats)
+├── users/
+│   └── page.tsx                      # Developer Users management
+├── roles/
+│   └── page.tsx                      # Role Management with permission matrix
+├── masters/
+│   └── page.tsx                      # Master Configuration
+├── integrations/
+│   └── page.tsx                      # Integration Configuration
+├── system/
+│   └── page.tsx                      # System (health, feature flags, API configs)
+└── logs/
+    └── page.tsx                      # Audit Logs
+```
+
+### Week 3 Deliverables Checklist
 | File | Changes |
 |------|---------|
 | `api/src/lib/permissions.ts` | Added STUDENT_*, PARENT_*, STUDENT_ENROLLMENT_* permissions (already existed from schema update) |
@@ -214,7 +295,7 @@ api/src/modules/auth/
 #### Database
 - **Migration:** Created `refresh_tokens` table with FK to `users`
 - **Models:** Role, Permission, RolePermission, UserRole, User (already in initial migration)
-- **Seed:** Demo admin user (`admin@campusone.test` / `ChangeMe-12345`) with Admin role
+- **Seed:** Demo admin user (`developer@campusone.test` / `DevPass-12345`) with Admin role
 
 ### Frontend (Web) - Files Created/Modified
 
@@ -317,6 +398,55 @@ web/src/
 | DELETE | `/api/v1/teacher-assignments/:id` | Required | teacher_assignment:delete | Delete assignment |
 | GET | `/api/v1/teacher-assignments/teacher-year` | Required | teacher_assignment:view | Get assignments by teacher & academic year |
 | GET | `/api/v1/teacher-assignments/class-section-year` | Required | teacher_assignment:view | Get assignments by class, section, academic year |
+
+#### Developer Control Panel
+
+| Method | Endpoint | Auth | Permission | Description |
+|--------|----------|------|------------|-------------|
+| GET | `/api/v1/developer/dashboard` | Required | DEVELOPER_ACCESS | System-wide metrics (schools, students, fees, users) |
+| GET | `/api/v1/developer/current-school` | Required | (any auth) | Current school context |
+| GET | `/api/v1/developer/schools` | Required | DEVELOPER_ACCESS | List all schools (paginated, searchable) |
+| GET | `/api/v1/developer/schools/check-uniqueness` | Required | DEVELOPER_ACCESS | Check school name/code/email uniqueness |
+| POST | `/api/v1/developer/schools/onboard` | Required | DEVELOPER_ACCESS | Complete school onboarding (school + initial user) |
+| GET | `/api/v1/developer/schools/:id` | Required | DEVELOPER_ACCESS | Get school details with stats |
+| PATCH | `/api/v1/developer/schools/:id` | Required | DEVELOPER_ACCESS | Update school profile |
+| PATCH | `/api/v1/developer/schools/:id/status` | Required | DEVELOPER_ACCESS | Toggle school active status |
+| POST | `/api/v1/developer/schools/:id/deactivate` | Required | DEVELOPER_ACCESS | Deactivate school with confirmation |
+| GET | `/api/v1/developer/users` | Required | DEVELOPER_ACCESS | List users across all schools |
+| POST | `/api/v1/developer/users` | Required | DEVELOPER_ACCESS | Create user in any school |
+| GET | `/api/v1/developer/users/:id` | Required | DEVELOPER_ACCESS | Get user with school and roles |
+| PATCH | `/api/v1/developer/users/:id` | Required | DEVELOPER_ACCESS | Update user (incl. move between schools) |
+| DELETE | `/api/v1/developer/users/:id` | Required | DEVELOPER_ACCESS | Soft/hard delete user |
+| POST | `/api/v1/developer/users/bulk` | Required | DEVELOPER_ACCESS | Bulk activate/deactivate/delete |
+| POST | `/api/v1/developer/users/:id/reset-password` | Required | DEVELOPER_ACCESS | Reset user password |
+| GET | `/api/v1/developer/users/schools` | Required | DEVELOPER_ACCESS | List active schools for dropdown |
+| GET | `/api/v1/developer/users/roles?schoolId=` | Required | DEVELOPER_ACCESS | List roles for a school |
+| GET | `/api/v1/developer/roles` | Required | DEVELOPER_ACCESS + role:view | List all roles across schools |
+| POST | `/api/v1/developer/roles` | Required | DEVELOPER_ACCESS + role:create | Create role with permissions |
+| GET | `/api/v1/developer/roles/:id` | Required | DEVELOPER_ACCESS + role:view | Get role with permissions |
+| PATCH | `/api/v1/developer/roles/:id` | Required | DEVELOPER_ACCESS + role:update | Update role (incl. permission sync) |
+| DELETE | `/api/v1/developer/roles/:id` | Required | DEVELOPER_ACCESS + role:delete | Delete role (blocks if assigned) |
+| GET | `/api/v1/developer/masters` | Required | DEVELOPER_ACCESS + master_config:view | List master config |
+| POST | `/api/v1/developer/masters` | Required | DEVELOPER_ACCESS + master_config:create | Create master config |
+| GET | `/api/v1/developer/masters/:id` | Required | DEVELOPER_ACCESS + master_config:view | Get master config with overrides |
+| PATCH | `/api/v1/developer/masters/:id` | Required | DEVELOPER_ACCESS + master_config:update | Update master config |
+| DELETE | `/api/v1/developer/masters/:id` | Required | DEVELOPER_ACCESS + master_config:delete | Delete master config |
+| POST | `/api/v1/developer/masters/:id/overrides` | Required | DEVELOPER_ACCESS + master_config:update | Create/update school override |
+| DELETE | `/api/v1/developer/masters/:id/overrides/:schoolId` | Required | DEVELOPER_ACCESS + master_config:update | Delete school override |
+| GET | `/api/v1/developer/integrations` | Required | DEVELOPER_ACCESS + integration_config:view | List integration configs |
+| POST | `/api/v1/developer/integrations` | Required | DEVELOPER_ACCESS + integration_config:create | Create integration config |
+| GET | `/api/v1/developer/integrations/:id` | Required | DEVELOPER_ACCESS + integration_config:view | Get integration config |
+| PATCH | `/api/v1/developer/integrations/:id` | Required | DEVELOPER_ACCESS + integration_config:update | Update integration config |
+| DELETE | `/api/v1/developer/integrations/:id` | Required | DEVELOPER_ACCESS + integration_config:delete | Delete integration config |
+| POST | `/api/v1/developer/integrations/:id/test` | Required | DEVELOPER_ACCESS + integration_config:test | Test integration connection |
+| GET | `/api/v1/developer/system/health` | Required | DEVELOPER_ACCESS + system:view | System health check |
+| GET | `/api/v1/developer/system/feature-flags` | Required | DEVELOPER_ACCESS + feature_flag:view | List feature flags |
+| POST | `/api/v1/developer/system/feature-flags` | Required | DEVELOPER_ACCESS + feature_flag:create | Create feature flag |
+| GET | `/api/v1/developer/system/feature-flags/:id` | Required | DEVELOPER_ACCESS + feature_flag:view | Get feature flag |
+| PATCH | `/api/v1/developer/system/feature-flags/:id` | Required | DEVELOPER_ACCESS + feature_flag:update | Update feature flag |
+| DELETE | `/api/v1/developer/system/feature-flags/:id` | Required | DEVELOPER_ACCESS + feature_flag:delete | Delete feature flag |
+| GET | `/api/v1/developer/system/api-configs` | Required | DEVELOPER_ACCESS + system:view | List API configurations |
+| GET | `/api/v1/developer/logs` | Required | DEVELOPER_ACCESS + audit_log:view | List audit logs (filterable) |
 
 #### Week 4 - People Management
 
@@ -422,6 +552,16 @@ web/src/
 | Teacher Eligibility | teacher_eligibility:view, teacher_eligibility:create, teacher_eligibility:update, teacher_eligibility:delete, teacher_eligibility:manage |
 | Teacher Assignment | teacher_assignment:view, teacher_assignment:create, teacher_assignment:update, teacher_assignment:delete, teacher_assignment:manage |
 
+**New Permissions Added (Developer Control Panel):**
+| Module | Permissions |
+|--------|-------------|
+| Developer | developer:access |
+| Master Config | master_config:view, master_config:create, master_config:update, master_config:delete, master_config:manage |
+| Integration Config | integration_config:view, integration_config:create, integration_config:update, integration_config:delete, integration_config:manage, integration_config:test |
+| Feature Flag | feature_flag:view, feature_flag:create, feature_flag:update, feature_flag:delete, feature_flag:manage |
+| System | system:view |
+| Audit Log | audit_log:view |
+
 **Roles (7 system roles):**
 | Role | Permissions |
 |------|-------------|
@@ -454,7 +594,7 @@ web/src/
 curl -X POST http://localhost:4000/api/v1/auth/login \
   -H "Content-Type: application/json" \
   -H "x-school-id: 2863124a-76bb-4c5a-bb32-155efac4ff61" \
-  -d '{"email":"admin@campusone.test","password":"ChangeMe-12345"}'
+  -d '{"email":"developer@campusone.test","password":"DevPass-12345"}'
 # ✅ Returns 200 with Set-Cookie headers
 
 # Get Current User (with cookies)
@@ -544,7 +684,7 @@ curl -X GET "http://localhost:4000/api/v1/class-subjects/class/da9f83d9-7c33-4ee
 curl -X POST http://localhost:4000/api/v1/auth/login \
   -H "Content-Type: application/json" \
   -H "x-school-id: 87a4a639-83d9-4158-b4c3-092efe7b617b" \
-  -d '{"email":"admin@campusone.test","password":"ChangeMe-12345"}' \
+  -d '{"email":"developer@campusone.test","password":"DevPass-12345"}' \
   -c cookies.txt
 # ✅ Returns 200 with Set-Cookie headers
 
@@ -626,7 +766,7 @@ curl -X GET "http://localhost:4000/api/v1/auth/permissions?limit=500" \
 curl -X POST http://localhost:4000/api/v1/auth/login \
   -H "Content-Type: application/json" \
   -H "x-school-id: DEMO" \
-  -d '{"email":"admin@campusone.test","password":"ChangeMe-12345"}' \
+  -d '{"email":"developer@campusone.test","password":"DevPass-12345"}' \
   -c cookies.txt
 # ✅ Returns 200 with Set-Cookie headers
 
@@ -678,7 +818,7 @@ curl -X GET "http://localhost:4000/api/v1/teacher-assignments/class-section-year
 curl -X POST http://localhost:3000/api/auth/login \
   -H "Content-Type: application/json" \
   -H "x-school-id: 87a4a639-83d9-4158-b4c3-092efe7b617b" \
-  -d '{"email":"admin@campusone.test","password":"ChangeMe-12345"}' \
+  -d '{"email":"developer@campusone.test","password":"DevPass-12345"}' \
   -c cookies.txt
 # ✅ Returns 200 with cookies proxied from backend
 
@@ -726,11 +866,21 @@ curl -X GET http://localhost:3000/api/roles \
 | Attendance | http://localhost:3000/attendance | ✅ Attendance calendar view |
 | Teacher Eligibilities | http://localhost:3000/teacher-eligibilities | ✅ Lists eligibilities with class range selection |
 | Teacher Assignments | http://localhost:3000/teacher-assignments | ✅ Lists assignments with eligibility warnings |
+| Developer Dashboard | http://localhost:3000/developer | ✅ System-wide metrics (schools, students, fees, users) |
+| Developer Schools | http://localhost:3000/developer/schools | ✅ Lists schools with onboarding action |
+| School Onboarding | http://localhost:3000/developer/schools/new | ✅ 2-step form (profile → initial user) |
+| School Details | http://localhost:3000/developer/schools/[id] | ✅ Profile, settings, feature flags, users, stats |
+| Developer Users | http://localhost:3000/developer/users | ✅ Cross-school user management |
+| Developer Roles | http://localhost:3000/developer/roles | ✅ Role management with permission matrix |
+| Master Config | http://localhost:3000/developer/masters | ✅ Global config with school overrides |
+| Integrations | http://localhost:3000/developer/integrations | ✅ Per-school API configs with test |
+| System | http://localhost:3000/developer/system | ✅ Health, feature flags, API configs |
+| Audit Logs | http://localhost:3000/developer/logs | ✅ Filterable audit log viewer |
 
 ### Demo Credentials
 ```
-Email:    admin@campusone.test
-Password: ChangeMe-12345
+Email:    developer@campusone.test
+Password: DevPass-12345
 School:   Demo School (ID: 2863124a-76bb-4c5a-bb32-155efac4ff61)
 ```
 
@@ -747,6 +897,7 @@ School:   Demo School (ID: 2863124a-76bb-4c5a-bb32-155efac4ff61)
 | Frontend pages for people management (students, parents, enrollments) | Medium | ✅ DONE (Week 4) |
 | Teacher Eligibility module (backend + frontend) | Medium | ✅ DONE (Week 6) |
 | Teacher Assignment module (backend + frontend) | Medium | ✅ DONE (Week 6) |
+| Developer Control Panel (school onboarding, users, roles, config, logs) | High | ✅ DONE (Week 6-7) |
 | Admissions module | Medium | ⏳ TODO (Week 7+) |
 | Attendance module (backend + frontend) | High | ⏳ TODO (Week 7) |
 | Timetable module (backend + frontend) | High | ⏳ TODO (Week 7) |

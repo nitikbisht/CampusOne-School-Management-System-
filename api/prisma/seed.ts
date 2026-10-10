@@ -71,8 +71,8 @@ async function main() {
   }
 
   // Demo admin user
-  const email = process.env.SEED_ADMIN_EMAIL ?? "admin@campusone.test";
-  const password = process.env.SEED_ADMIN_PASSWORD ?? "ChangeMe-12345";
+  const email = process.env.SEED_ADMIN_EMAIL ?? "developer@campusone.test";
+  const password = process.env.SEED_ADMIN_PASSWORD ?? "DevPass-12345";
   const admin = await prisma.user.upsert({
     where: { schoolId_email: { schoolId, email } },
     update: {},
@@ -103,7 +103,7 @@ async function main() {
       create: {
         schoolId,
         email: t.email,
-        passwordHash: await bcrypt.hash("ChangeMe-12345", 12),
+        passwordHash: await bcrypt.hash("DevPass-12345", 12),
         firstName: t.firstName,
         lastName: t.lastName,
       },

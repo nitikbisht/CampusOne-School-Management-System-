@@ -33,7 +33,7 @@ export function validate(schemas: Schemas): RequestHandler {
       }
       validated[part] = result.data;
     }
-
+    console.log(validated,"validated")
     res.locals.validated = validated;
     next();
   };
@@ -42,5 +42,6 @@ export function validate(schemas: Schemas): RequestHandler {
 export function getValidated<T extends { body?: unknown; query?: unknown; params?: unknown }>(
   res: Response,
 ): T {
+  console.log(res)
   return res.locals.validated as T;
 }

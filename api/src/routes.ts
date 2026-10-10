@@ -21,6 +21,7 @@ import { eligibilityRoutes } from "./modules/teacher-eligibility/eligibility.rou
 import { assignmentRoutes } from "./modules/teacher-assignments/assignment.routes.js";
 import { examRoutes } from "./modules/examinations/exam.routes.js";
 import { studentMarkRoutes } from "./modules/student-marks/student-mark.routes.js";
+import { developerRoutes } from "./modules/developer/developer.routes.js";
 
 export const routes = Router();
 
@@ -46,3 +47,4 @@ routes.use("/teacher-eligibilities", eligibilityRoutes);
 routes.use("/teacher-assignments", assignmentRoutes);
 routes.use("/exams", examRoutes);
 routes.use("/student-marks", studentMarkRoutes);
+routes.use("/developer", developerRoutes);

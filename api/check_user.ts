@@ -6,7 +6,7 @@ async function main() {
     where: { 
       schoolId_email: { 
         schoolId: "2863124a-76bb-4c5a-bb32-155efac4ff61", 
-        email: "admin@campusone.test" 
+        email: "developer@campusone.test" 
       }
     },
     include: {

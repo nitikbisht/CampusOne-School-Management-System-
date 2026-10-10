@@ -54,3 +54,7 @@ export function hasRole(user: User | null, role: string): boolean {
   if (!user) return false;
   return user.roles.includes(role);
 }
+
+export function isDeveloper(user: User | null): boolean {
+  return hasRole(user, "Developer");
+}

@@ -11,7 +11,15 @@ interface User {
   isActive: boolean;
   emailVerified: boolean;
   lastLoginAt?: string;
-  roles: string[];
+  roles: Array<{
+    userId: string;
+    roleId: string;
+    role: {
+      id: string;
+      name: string;
+      description?: string;
+    };
+  }>;
   createdAt: string;
   updatedAt: string;
 }
@@ -156,7 +164,7 @@ export default function UsersPage() {
       phone: u.phone || "",
       password: "",
       isActive: u.isActive,
-      roleIds: u.roles || [],
+      roleIds: u.roles.map(r => r.roleId),
     });
     setShowModal(true);
   };

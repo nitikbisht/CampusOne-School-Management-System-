@@ -141,6 +141,50 @@ export const PERMISSIONS = {
 
   // Auditing
   AUDIT_VIEW: "audit:view",
+
+  // School Onboarding
+  SCHOOL_CREATE: "school:create",
+  SCHOOL_VIEW: "school:view",
+  SCHOOL_UPDATE: "school:update",
+  SCHOOL_DELETE: "school:delete",
+  SCHOOL_MANAGE: "school:manage",
+
+  // Developer User Management
+  DEVELOPER_USER_VIEW: "developer_user:view",
+  DEVELOPER_USER_CREATE: "developer_user:create",
+  DEVELOPER_USER_UPDATE: "developer_user:update",
+  DEVELOPER_USER_DELETE: "developer_user:delete",
+  DEVELOPER_USER_MANAGE: "developer_user:manage",
+  DEVELOPER_USER_PASSWORD_RESET: "developer_user:password_reset",
+
+  // Master Configuration
+  MASTER_VIEW: "master:view",
+  MASTER_CREATE: "master:create",
+  MASTER_UPDATE: "master:update",
+  MASTER_DELETE: "master:delete",
+  MASTER_MANAGE: "master:manage",
+
+  // Integration Management
+  INTEGRATION_VIEW: "integration:view",
+  INTEGRATION_CREATE: "integration:create",
+  INTEGRATION_UPDATE: "integration:update",
+  INTEGRATION_DELETE: "integration:delete",
+  INTEGRATION_MANAGE: "integration:manage",
+  INTEGRATION_TEST: "integration:test",
+
+  // Feature Flags
+  FEATURE_FLAG_VIEW: "feature_flag:view",
+  FEATURE_FLAG_CREATE: "feature_flag:create",
+  FEATURE_FLAG_UPDATE: "feature_flag:update",
+  FEATURE_FLAG_DELETE: "feature_flag:delete",
+  FEATURE_FLAG_MANAGE: "feature_flag:manage",
+
+  // System
+  SYSTEM_VIEW: "system:view",
+  SYSTEM_MANAGE: "system:manage",
+
+  // Developer
+  DEVELOPER_ACCESS: "developer:access",
 } as const;
 
 export type PermissionKey = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];

@@ -8,7 +8,7 @@ async function testLogin() {
   try {
     // Find the user
     const user = await prisma.user.findUnique({
-      where: { schoolId_email: { schoolId: "demo", email: "admin@campusone.test" } },
+      where: { schoolId_email: { schoolId: "demo", email: "developer@campusone.test" } },
       include: {
         roles: {
           include: {
@@ -35,7 +35,7 @@ async function testLogin() {
       });
 
       // Test password
-      const valid = await bcrypt.compare("ChangeMe-12345", user.passwordHash);
+      const valid = await bcrypt.compare("DevPass-12345", user.passwordHash);
       console.log("Password valid:", valid);
     }
   } catch (err) {

@@ -8,8 +8,8 @@ function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { login, isLoading } = useAuth();
-  const [email, setEmail] = useState("admin@campusone.test");
-  const [password, setPassword] = useState("ChangeMe-12345");
+  const [email, setEmail] = useState("developer@campusone.test");
+  const [password, setPassword] = useState("DevPass-12345");
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -82,15 +82,15 @@ function LoginForm() {
 
           <button
             type="submit"
-            disabled={isSubmitting || isLoading}
+            disabled={isSubmitting && isLoading}
             className="w-full py-2.5 px-4 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
-            {isSubmitting || isLoading ? "Signing in..." : "Sign in"}
+            {isSubmitting && isLoading ? "Signing in..." : "Sign in"}
           </button>
         </form>
 
         <p className="mt-6 text-center text-sm text-gray-500">
-          Demo credentials: admin@campusone.test / ChangeMe-12345
+          Demo credentials: developer@campusone.test / DevPass-12345
         </p>
       </div>
     </div>

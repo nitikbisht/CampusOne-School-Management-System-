@@ -5,12 +5,14 @@ export const idParamSchema = z.object({ id: z.uuid() });
 export const loginSchema = z.object({
   email: z.email().toLowerCase().trim(),
   password: z.string().min(8).max(128),
+  schoolId: z.string().optional(),
 });
 
 export type LoginInput = z.infer<typeof loginSchema>;
 
 export const refreshSchema = z.object({
   refreshToken: z.string().min(1),
+  schoolId: z.string().optional(),
 });
 
 export type RefreshInput = z.infer<typeof refreshSchema>;

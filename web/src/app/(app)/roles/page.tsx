@@ -7,7 +7,17 @@ interface Role {
   name: string;
   description?: string;
   isSystem: boolean;
-  permissions: string[];
+  permissions: Array<{
+    roleId: string;
+    permissionId: string;
+    permission: {
+      id: string;
+      key: string;
+      module: string;
+      action: string;
+      description: string | null;
+    };
+  }>;
   createdAt: string;
   updatedAt: string;
 }
@@ -15,10 +25,21 @@ interface Permission {
   key: string;
   description: string;
 }
+interface RolePermission {
+  roleId: string;
+  permissionId: string;
+  permission: {
+    id: string;
+    key: string;
+    module: string;
+    action: string;
+    description: string | null;
+  };
+}
 interface RoleFormData {
   name: string;
   description?: string;
-  permissions: string[];
+  permissions: string[]; // Store permission IDs for form submission
 }
 export default function RolesPage() {
   const { user } = useAuth();
@@ -108,7 +129,7 @@ export default function RolesPage() {
     setFormData({
       name: role.name,
       description: role.description || "",
-      permissions: role.permissions,
+      permissions: role.permissions.map(p => p.permissionId),
     });
     setShowModal(true);
   };
@@ -117,7 +138,7 @@ export default function RolesPage() {
     setFormData({
       name: role.name,
       description: role.description || "",
-      permissions: role.permissions,
+      permissions: role.permissions.map(p => p.permissionId),
     });
     setShowModal(true);
   };

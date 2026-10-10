@@ -7,9 +7,9 @@ import type { LoginInput, RefreshInput, ForgotPasswordInput, ResetPasswordInput,
 export const authController = {
   async login(req: Request, res: Response) {
     const { body } = getValidated<{ body: LoginInput }>(res);
-    const schoolId = req.headers["x-school-id"] as string;
-    if (!schoolId) throw new Error("Missing x-school-id header");
-
+    const schoolId = (req.headers["x-school-id"] as string) || body.schoolId;
+    if (!schoolId) throw new Error("Missing x-school-id header or schoolId in body");
+    console.log(body.schoolId,"school id")
     const { accessToken, refreshToken, auth } = await authService.login(schoolId, body.email, body.password);
 
     // Set cookies
@@ -43,8 +43,8 @@ export const authController = {
 
   async refresh(req: Request, res: Response) {
     const { body } = getValidated<{ body: RefreshInput }>(res);
-    const schoolId = req.headers["x-school-id"] as string;
-    if (!schoolId) throw new Error("Missing x-school-id header");
+    const schoolId = (req.headers["x-school-id"] as string) || body.schoolId;
+    if (!schoolId) throw new Error("Missing x-school-id header or schoolId in body");
 
     const { accessToken, refreshToken, auth } = await authService.refresh(schoolId, body.refreshToken);
 

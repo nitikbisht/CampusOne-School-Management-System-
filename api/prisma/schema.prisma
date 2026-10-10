@@ -20,13 +20,16 @@ enum AcademicYearStatus {
 }
 
 model School {
-  id        String   @id @default(uuid()) @db.Uuid
-  name      String
-  code      String   @unique
-  timezone  String   @default("UTC")
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id            String   @id @default(uuid()) @db.Uuid
+  name          String
+  code          String   @unique
+  address       String?
+  contactEmail  String?
+  contactPhone  String?
+  timezone      String   @default("UTC")
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
   users              User[]
   roles              Role[]
@@ -63,6 +66,7 @@ model School {
   examSubjects       ExamSubject[]
   examAssessmentComponents ExamAssessmentComponent[]
   examSchedules      ExamSchedule[]
+  featureFlags       FeatureFlag[]
 
   @@map("schools")
 }
@@ -1108,4 +1112,59 @@ model AuditLog {
   @@index([schoolId, entityType, entityId])
   @@index([schoolId, createdAt])
   @@map("audit_logs")
+}
+
+// ---------- Developer Control Panel ----------
+
+// Feature Flags - system-wide toggles with optional per-school scope
+model FeatureFlag {
+  id          String   @id @default(uuid()) @db.Uuid
+  key         String
+  name        String
+  description String?
+  enabled     Boolean  @default(false)
+  scope       FeatureFlagScope @default(GLOBAL)
+  schoolId    String?  @db.Uuid
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  school      School?  @relation(fields: [schoolId], references: [id])
+
+  @@unique([key, schoolId])
+  @@index([schoolId])
+  @@map("feature_flags")
+}
+
+enum FeatureFlagScope {
+  GLOBAL
+  PER_SCHOOL
+}
+
+// Integration Configurations - encrypted secrets for third-party services
+model IntegrationConfig {
+  id             String            @id @default(uuid()) @db.Uuid
+  key            String            @unique // e.g., "smtp", "sms", "payment_razorpay"
+  name           String
+  description    String?
+  config         Json              // Encrypted config (keys, secrets, endpoints)
+  isActive       Boolean           @default(false)
+  lastTestedAt   DateTime?
+  lastTestResult String?
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  @@map("integration_configs")
+}
+
+// Global configuration templates for school onboarding
+model ConfigTemplate {
+  id          String   @id @default(uuid()) @db.Uuid
+  name        String
+  description String?
+  template    Json     // Template configuration (fee types, roles, academic structure, etc.)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("config_templates")
 }
