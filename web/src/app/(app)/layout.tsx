@@ -4,8 +4,8 @@ import { useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { SchoolProvider } from "@/lib/school-context";
-import Link from "next/link";
-import { getFilteredNavigation, getPrimaryRole } from "@/lib/navigation";
+import { getFilteredNavigation, flattenNavItems } from "@/lib/navigation";
+import { Sidebar } from "@/components/Sidebar";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -37,58 +37,15 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     router.refresh();
   };
 
-  // Find current page name for header
-  const currentPageName = navigationGroups
-    .flatMap((g) => g.items)
-    .find((item) => item.href === pathname)?.name ?? "Dashboard";
+  // Find current page name for header (including nested items)
+  const allItems = navigationGroups.flatMap((g) => flattenNavItems(g.items));
+  const currentPageName = allItems.find((item) => item.href === pathname)?.name ?? "Dashboard";
 
   return (
     <SchoolProvider>
       <div className="min-h-screen bg-gray-50 flex">
         {/* Sidebar */}
-        <aside className="fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-gray-200 transform transition-transform duration-200 ease-in-out lg:translate-x-0">
-          <div className="flex flex-col h-full">
-            <div className="flex items-center justify-between h-16 px-6 border-b border-gray-200">
-              <span className="text-xl font-bold text-gray-900">CampusOne</span>
-            </div>
-            <nav className="flex-1 px-4 py-4 space-y-1 overflow-y-auto">
-              {navigationGroups.map((group) => (
-                <div key={group.label} className="space-y-1">
-                  <p className="px-3 py-1 text-xs font-semibold text-gray-400 uppercase tracking-wider">
-                    {group.label}
-                  </p>
-                  {group.items.map((item) => (
-                    <Link
-                      key={item.name}
-                      href={item.href}
-                      className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                        pathname === item.href
-                          ? "bg-blue-50 text-blue-700"
-                          : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
-                      }`}
-                    >
-                      <span className="text-lg">{item.icon}</span>
-                      {item.name}
-                    </Link>
-                  ))}
-                </div>
-              ))}
-            </nav>
-            <div className="p-4 border-t border-gray-200">
-              <div className="mb-3 px-3 py-2 bg-gray-50 rounded-lg">
-                <p className="text-xs text-gray-500">Signed in as</p>
-                <p className="text-sm font-medium text-gray-900 capitalize">{getPrimaryRole(user).toLowerCase()}</p>
-              </div>
-              <button
-                onClick={handleLogout}
-                className="w-full flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-gray-600 hover:bg-gray-100 hover:text-gray-900 rounded-lg transition-colors"
-              >
-                <span className="text-lg">🚪</span>
-                Sign out
-              </button>
-            </div>
-          </div>
-        </aside>
+        <Sidebar navigationGroups={navigationGroups} user={user} onLogout={handleLogout} />
 
         {/* Main content */}
         <div className="flex-1 flex flex-col lg:pl-64">
