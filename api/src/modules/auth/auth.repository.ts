@@ -39,6 +39,25 @@ export const authRepository = {
     });
   },
 
+  async findUserByEmailAcrossSchools(email: string): Promise<UserWithRoles | null> {
+    return prisma.user.findFirst({
+      where: { email },
+      include: {
+        roles: {
+          include: {
+            role: {
+              include: {
+                permissions: {
+                  include: { permission: true },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+  },
+
   async findUserById(schoolId: string, userId: string): Promise<UserWithRoles | null> {
     return prisma.user.findFirst({
       where: { id: userId, schoolId },

@@ -5,12 +5,9 @@ import { authService } from "./auth.service.js";
 import type { LoginInput, RefreshInput, ForgotPasswordInput, ResetPasswordInput, ChangePasswordInput } from "./auth.schemas.js";
 
 export const authController = {
-  async login(req: Request, res: Response) {
+  async login(_req: Request, res: Response) {
     const { body } = getValidated<{ body: LoginInput }>(res);
-    const schoolId = (req.headers["x-school-id"] as string) || body.schoolId;
-    if (!schoolId) throw new Error("Missing x-school-id header or schoolId in body");
-    console.log(body.schoolId,"school id")
-    const { accessToken, refreshToken, auth } = await authService.login(schoolId, body.email, body.password);
+    const { accessToken, refreshToken, auth } = await authService.login(body.email, body.password);
 
     // Set cookies
     const isProd = process.env.NODE_ENV === "production";
@@ -41,12 +38,10 @@ export const authController = {
     res.json({ data: { message: "Logged out successfully" } });
   },
 
-  async refresh(req: Request, res: Response) {
+  async refresh(_req: Request, res: Response) {
     const { body } = getValidated<{ body: RefreshInput }>(res);
-    const schoolId = (req.headers["x-school-id"] as string) || body.schoolId;
-    if (!schoolId) throw new Error("Missing x-school-id header or schoolId in body");
-
-    const { accessToken, refreshToken, auth } = await authService.refresh(schoolId, body.refreshToken);
+    // schoolId is extracted from the refresh token payload in the service
+    const { accessToken, refreshToken, auth } = await authService.refresh(body.refreshToken);
 
     const isProd = process.env.NODE_ENV === "production";
     res.cookie("access_token", accessToken, {
@@ -73,21 +68,21 @@ export const authController = {
   },
 
   // Forgot/Reset password - placeholder implementations
-  async forgotPassword(req: Request, res: Response) {
+  async forgotPassword(_req: Request, res: Response) {
     const { body } = getValidated<{ body: ForgotPasswordInput }>(res);
     // TODO: Implement email sending with reset token
     // For now, just return success (don't reveal if email exists)
     res.json({ data: { message: "If the email exists, a reset link has been sent" } });
   },
 
-  async resetPassword(req: Request, res: Response) {
+  async resetPassword(_req: Request, res: Response) {
     const { body } = getValidated<{ body: ResetPasswordInput }>(res);
     // TODO: Implement password reset with token validation
     res.json({ data: { message: "Password reset successfully" } });
   },
 
-  async changePassword(req: Request, res: Response) {
-    const auth = getAuth(req);
+  async changePassword(_req: Request, res: Response) {
+    const auth = getAuth(_req);
     const { body } = getValidated<{ body: ChangePasswordInput }>(res);
     // TODO: Implement password change with current password verification
     res.json({ data: { message: "Password changed successfully" } });

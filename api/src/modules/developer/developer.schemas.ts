@@ -12,7 +12,7 @@ export type ListSchoolsQuery = z.infer<typeof listSchoolsQuerySchema>;
 
 /** Query params for dashboard */
 export const dashboardQuerySchema = z.object({
-  schoolId: z.string().uuid().optional(),
+  schoolId: z.string().uuid(),
 });
 
 export type DashboardQuery = z.infer<typeof dashboardQuerySchema>;
@@ -23,7 +23,7 @@ export const listLogsQuerySchema = z.object({
   limit: z.coerce.number().int().positive().max(100).default(20),
   action: z.string().optional(),
   entityType: z.string().optional(),
-  schoolId: z.string().uuid().optional(),
+  schoolId: z.string().uuid(),
   startDate: z.string().datetime().optional(),
   endDate: z.string().datetime().optional(),
 });
@@ -36,7 +36,7 @@ export const roleListQuerySchema = z.object({
   limit: z.coerce.number().int().positive().max(100).default(20),
   search: z.string().max(100).optional(),
   isSystem: z.coerce.boolean().optional(),
-  schoolId: z.string().uuid().optional(),
+  schoolId: z.string().uuid(),
 });
 
 export type RoleListQuery = z.infer<typeof roleListQuerySchema>;

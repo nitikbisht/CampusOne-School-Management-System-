@@ -2,7 +2,6 @@ import { AppError } from "../../lib/errors.js";
 import jwt from "jsonwebtoken";
 import type { AuthContext } from "../../types/auth.js";
 import { authRepository } from "./auth.repository.js";
-import { schoolRepository } from "./school.repository.js";
 import type { User } from "@prisma/client";
 
 const ACCESS_TOKEN_EXPIRY = "15m";
@@ -62,20 +61,14 @@ function signRefreshToken(payload: { userId: string; schoolId: string }): string
 
 const authService = (() => {
   const repo = authRepository;
-  const schoolRepo = schoolRepository;
   return {
-    async login(schoolIdOrCode: string, email: string, password: string) {
-      // Resolve school by ID or code
-      console.log(schoolIdOrCode,"schoolIdOrCode");
-      const school = await schoolRepo.findByIdOrCode(schoolIdOrCode) || {id:'f48d257a-aa11-4f08-8c71-a7b9877adb38'};
-      if (!school) throw AppError.unauthorized("Invalid school");
-      const schoolId = school.id;
-
-      const user = await repo.findUserByEmail(schoolId, email);
+    async login(email: string, password: string) {
+      // Find user by email across all schools
+      const user = await repo.findUserByEmailAcrossSchools(email);
       if (!user) throw AppError.unauthorized("Invalid email or password");
       if (!user.isActive) throw AppError.unauthorized("Account is deactivated");
 
-      const valid = await repo.verifyToken(password, user.passwordHash);
+      const valid = repo.verifyToken(password, user.passwordHash);
       if (!valid) throw AppError.unauthorized("Invalid email or password");
 
       const auth = buildAuthContext(user);
@@ -95,15 +88,14 @@ const authService = (() => {
       return { accessToken, refreshToken, auth };
     },
 
-    async refresh(schoolIdOrCode: string, refreshToken: string) {
-      // Resolve school by ID or code
-      const school = await schoolRepo.findByIdOrCode(schoolIdOrCode);
-      if (!school) throw AppError.unauthorized("Invalid school");
-      const schoolId = school.id;
-
+    async refresh(refreshToken: string) {
       const tokenHash = repo.hashToken(refreshToken);
       const stored = await repo.findRefreshTokenByHash(tokenHash);
       if (!stored) throw AppError.unauthorized("Invalid or expired refresh token");
+
+      // Verify token and get payload to extract schoolId
+      const payload = jwt.verify(refreshToken, JWT_REFRESH_SECRET) as { userId: string; schoolId: string };
+      const schoolId = payload.schoolId;
 
       const user = await repo.findUserById(schoolId, stored.userId);
       if (!user || !user.isActive) throw AppError.unauthorized("User not found or deactivated");
